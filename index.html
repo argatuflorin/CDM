@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="ro">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Laborator virtual CDM: Concepția asistată de calculator a sistemelor distribuite de măsurare. Aplicații interactive pentru achiziția și transmiterea datelor.">
+  <title>CDM — Laborator virtual</title>
+  <style>
+    :root{font-family:system-ui,"Segoe UI",Arial,sans-serif;color-scheme:light;color:#000;background:#faf9ff}
+    *{box-sizing:border-box}
+    body{margin:0;min-height:100vh;background:linear-gradient(135deg,#fff,#f5f3ff);color:#000}
+    main{max-width:1120px;margin:auto;padding:48px 22px}
+    header{margin-bottom:30px}
+    .tag{font-size:13px;letter-spacing:.12em;text-transform:uppercase;font-weight:700}
+    h1{font-size:clamp(30px,5vw,49px);line-height:1.13;margin:12px 0}
+    .discipline{font-size:clamp(18px,2.5vw,24px);margin:0 0 16px;font-weight:600}
+    p{line-height:1.6}
+    .grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px}
+    .card{display:block;text-decoration:none;color:#000;border:1px solid #d8cbed;border-radius:16px;padding:25px;background:#fff;transition:transform .15s,border-color .15s,box-shadow .15s}
+    .card:hover{transform:translateY(-3px);border-color:#6d28d9;box-shadow:0 8px 24px #6d28d910}
+    a:focus-visible{outline:3px solid #6d28d9;outline-offset:5px}
+    .number{font-size:14px;font-weight:700}
+    .card h2{font-size:22px;line-height:1.3;margin:14px 0 8px}
+    .card p{margin:0 0 20px}
+    .open{display:inline-block;font-weight:700;color:#000;border-bottom:1px solid #6d28d9}
+    footer{margin-top:32px;font-size:13px}
+    footer a{color:#000}
+    @media(max-width:700px){.grid{grid-template-columns:1fr}main{padding:25px 16px}}
+    @media(prefers-reduced-motion:reduce){.card{transition:none}.card:hover{transform:none}}
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <div class="tag">Inginerie electrică · Anul IV</div>
+      <h1>CDM — Laborator virtual</h1>
+      <p class="discipline">Concepția asistată de calculator<br>a sistemelor distribuite de măsurare</p>
+      <p>Aplicații interactive pentru studiul achiziției și al transmiterii datelor în sisteme distribuite de măsurare.<br>Alegeți o aplicație și urmați cerințele îndrumarului disponibil în Moodle.</p>
+    </header>
+    <div class="grid">
+      <a class="card" href="CDM_Comunicatie_ESP32.html">
+        <span class="number">PROIECT · COMUNICAȚII HTTP</span>
+        <h2>Comunicația între două noduri ESP32</h2>
+        <p>Transmiterea datelor prin HTTP, vechimea informației, întreruperea comunicației și repornirea nodului. Simulator cu date de test și fișă individuală după grupa și indicele N.</p>
+        <span class="open">Deschide aplicația →</span>
+      </a>
+    </div>
+    <footer><a href="https://argatuflorin.github.io/">Florin Ciprian Argatu — Pagina principală</a></footer>
+  </main>
+</body>
+</html>
