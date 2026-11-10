@@ -1,0 +1,565 @@
+<!doctype html>
+<html lang="ro">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>CDM · L02 · ESP32 punct de acces și server web</title>
+  <style>
+    :root { --v:#6d28d9; --v-tint:#f5f3ff; --v-line:#d8cbed; --muted:#3f3a48; --ok:#1f7a3d; --ok-bg:#e6f4ea; --warn:#8a5a00; --warn-bg:#fff4d6; --bad:#a3191f; --bad-bg:#fde8e8; --teal:#087f8c; }
+    * { box-sizing:border-box; }
+    body { margin:0; background:#fff; color:#000; font:16px/1.6 system-ui,"Segoe UI",Arial,sans-serif; }
+    main { max-width:1180px; margin:auto; padding:26px 22px 60px; }
+    h1 { font-size:clamp(28px,4vw,42px); line-height:1.15; margin:8px 0 6px; }
+    h2 { font-size:24px; margin:0 0 14px; }
+    h3 { font-size:18px; margin:18px 0 8px; }
+    p { margin:8px 0 12px; }
+    header { border-bottom:3px solid var(--v); padding-bottom:16px; }
+    .kicker { font-size:14px; font-weight:700; }
+    .lead { font-size:18px; max-width:820px; }
+    .author { font-size:14px; color:var(--muted); }
+    .variant { display:grid; grid-template-columns:auto auto auto 1fr; gap:12px; align-items:end; margin:18px 0; padding:16px; background:var(--v-tint); border:1px solid var(--v-line); border-radius:12px; }
+    .variant input { width:110px; }
+    .vcode { font-weight:700; }
+    .vdata { grid-column:1/-1; font-size:15px; }
+    label { display:block; font-size:14px; font-weight:650; }
+    input, select, textarea { display:block; width:100%; margin-top:4px; padding:9px; border:1px solid #9a93a6; border-radius:6px; font:inherit; background:#fff; color:#000; }
+    textarea { min-height:70px; }
+    button { font:600 14px system-ui,Arial,sans-serif; padding:10px 14px; background:var(--v-tint); border:1px solid var(--v); border-radius:7px; cursor:pointer; color:#000; }
+    button:hover { background:#ebe3ff; }
+    button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible { outline:3px solid var(--teal); outline-offset:2px; }
+    button[aria-pressed="true"], button[aria-selected="true"] { background:var(--v); color:#fff; }
+    .buttons { display:flex; flex-wrap:wrap; gap:8px; margin:12px 0; }
+    .tabs { display:flex; flex-wrap:wrap; gap:8px; margin:18px 0 6px; }
+    .tabs button { border-radius:7px 7px 0 0; }
+    .tab { display:none; padding:18px 0; }
+    .tab.active { display:block; }
+    .grid2 { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:22px; }
+    .grid3 { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:14px; }
+    .panel { border:1px solid var(--v-line); border-radius:12px; padding:16px; background:#fff; min-width:0; }
+    .note { background:var(--v-tint); border-left:4px solid var(--v); padding:12px 14px; border-radius:0 8px 8px 0; }
+    .muted { color:var(--muted); font-size:14px; }
+    .exp { display:none; }
+    .exp.active { display:block; }
+    .verdict { padding:10px 12px; border-radius:8px; margin:8px 0; font-size:15px; }
+    .verdict.ok { background:var(--ok-bg); color:var(--ok); }
+    .verdict.warn { background:var(--warn-bg); color:var(--warn); }
+    .verdict.bad { background:var(--bad-bg); color:var(--bad); }
+    .fields { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:12px; }
+    .mono, pre, code { font-family:ui-monospace,Consolas,monospace; }
+    pre { background:#f7f6f9; border:1px solid var(--v-line); border-radius:8px; padding:12px; overflow:auto; font-size:13px; line-height:1.5; white-space:pre; }
+    .addr { display:flex; gap:8px; align-items:center; background:#f1f0f4; border:1px solid #c9c3d3; border-radius:22px; padding:6px 8px 6px 14px; }
+    .addr input { border:0; background:transparent; margin:0; padding:6px; }
+    .addr input:focus-visible { outline:2px solid var(--teal); }
+    .screen { border:1px solid var(--v-line); border-radius:8px; min-height:150px; padding:14px; background:#fff; margin-top:10px; }
+    .http { font-size:13px; }
+    table { border-collapse:collapse; width:100%; font-size:14px; }
+    th, td { border:1px solid #cfc7dc; padding:7px 8px; text-align:left; vertical-align:top; }
+    th { background:#f1ebfa; }
+    .scroll { overflow-x:auto; }
+    .check { font-weight:700; }
+    .check.ok { color:var(--ok); } .check.bad { color:var(--bad); }
+    .clients { display:flex; flex-wrap:wrap; gap:8px; margin:10px 0; }
+    .client { border:1px solid var(--v-line); border-radius:8px; padding:8px 10px; font-size:14px; background:var(--v-tint); }
+    .client.refused { background:var(--bad-bg); color:var(--bad); border-color:#e7b3b5; }
+    .led { display:inline-block; width:16px; height:16px; border-radius:50%; background:#9ca3af; vertical-align:-3px; margin-right:6px; border:1px solid #555; }
+    .led.on { background:#f59e0b; box-shadow:0 0 10px #f59e0b; }
+    details { border:1px solid var(--v-line); border-radius:8px; padding:10px 14px; margin:10px 0; }
+    summary { cursor:pointer; font-weight:700; }
+    .formula { font:18px Cambria,Georgia,serif; padding:8px; background:#f7f6f9; border-radius:6px; overflow-x:auto; }
+    svg text { font-family:system-ui,Arial,sans-serif; }
+    footer { margin-top:30px; padding-top:14px; border-top:1px solid var(--v-line); font-size:13px; color:var(--muted); }
+    footer a { color:#000; }
+    @media (max-width:700px) { .grid2,.grid3,.fields { grid-template-columns:1fr; } .variant { grid-template-columns:1fr 1fr; } }
+    @media print { .noprint,.tabs,.variant .buttons { display:none !important; } .tab { display:none !important; } #tab-fisa { display:block !important; } main { max-width:none; padding:0; } body { font-size:12pt; } }
+  </style>
+</head>
+<body>
+<main>
+  <header>
+    <div class="kicker">CDM · Concepția asistată de calculator a sistemelor distribuite de măsurare · Anul IV</div>
+    <h1>ESP32 ca punct de acces și server web</h1>
+    <p class="lead">Configurați rețeaua Wi-Fi creată de nod, testați rutele serverului HTTP dintr-un browser simulat, conectați clienți până la limita rețelei și obțineți programul Arduino pentru varianta voastră.</p>
+    <div class="author">Conf.dr.ing. Argatu Florin Ciprian · laboratorul L02 · versiunea <span id="verLabel"></span></div>
+  </header>
+
+  <section class="variant" aria-label="Varianta individuală">
+    <div><label for="nInput">N – numărul vostru (1…30)</label><input id="nInput" type="number" min="1" max="30" step="1" value="7"></div>
+    <div class="buttons noprint"><button id="btnApply">Aplică varianta N</button><button id="btnExample">Exemplul N = 7</button></div>
+    <div><div class="muted">Codul variantei</div><div class="vcode" id="vCode">—</div></div>
+    <p id="nStatus" role="status" class="muted"></p>
+    <div class="vdata" id="vData"></div>
+  </section>
+
+  <div class="tabs noprint" role="tablist">
+    <button role="tab" data-tab="start" aria-selected="true">1 · Începe aici</button>
+    <button role="tab" data-tab="banc" aria-selected="false">2 · Banc virtual</button>
+    <button role="tab" data-tab="cod" aria-selected="false">3 · Programul</button>
+    <button role="tab" data-tab="fisa" aria-selected="false">4 · Fișa studentului</button>
+    <button role="tab" data-tab="breviar" aria-selected="false">5 · Breviar</button>
+  </div>
+
+  <section class="tab active" id="tab-start" role="tabpanel">
+    <h2>Ce investigați</h2>
+    <p>În L01 ați ales pinii unui nod de măsurare. Aici nodul devine el însuși rețea: creează un punct de acces Wi-Fi și răspunde la cereri HTTP. Un telefon sau un laptop se conectează la nod și citește datele direct, fără router și fără internet. În L03 același mecanism leagă două noduri.</p>
+    <div class="grid3">
+      <div class="panel"><h3>Parcurs (120 min)</h3><p>25 min – configurarea rețelei (Experiment 1)<br>35 min – rutele serverului (Experiment 2)<br>20 min – clienții și încărcarea (Experiment 3)<br>25 min – programul pe placă<br>15 min – fișa și concluziile</p></div>
+      <div class="panel"><h3>Ce predați</h3><p>Fișa completată (PDF din „Tipărește / Salvează PDF”), fișierul JSON al fișei și trei capturi: C1 – configurația acceptată, C2 – răspunsul rutei /data, C3 – clientul refuzat la depășirea limitei.</p></div>
+      <div class="panel"><h3>Ipotezele modelului</h3><p>Rutele, codurile HTTP și limitele urmează Arduino-ESP32 (WiFi.softAP, WebServer). Valoarea măsurată din /data este un semnal de test. Adresele clienților sunt ilustrative; pe placă le atribuie serverul DHCP al punctului de acces.</p></div>
+    </div>
+    <div class="note"><b>Aceasta este o simulare.</b> Aplicația nu se conectează la placă și nu transmite note. Programul generat este un punct de plecare pentru laborator; verificați-l pe placa voastră.</div>
+  </section>
+
+  <section class="tab" id="tab-banc" role="tabpanel">
+    <div class="buttons noprint" role="group" aria-label="Experimente">
+      <button class="expbtn" data-exp="1" aria-pressed="true">Experiment 1 · Rețeaua</button>
+      <button class="expbtn" data-exp="2" aria-pressed="false">Experiment 2 · Rutele</button>
+      <button class="expbtn" data-exp="3" aria-pressed="false">Experiment 3 · Clienții</button>
+    </div>
+
+    <div class="exp active" id="exp1">
+      <h2>Experiment 1 · Configurați punctul de acces</h2>
+      <p>Completați parametrii ceruți de variantă. Parola o alegeți voi, cu regulile WPA2. Verificați configurația înainte de a trece la rute.</p>
+      <div class="fields">
+        <label>SSID<input id="cSsid" maxlength="40" placeholder="CDM-L02-N07"></label>
+        <label>Parolă (WPA2)<input id="cPass" maxlength="80" placeholder="minimum 8 caractere"></label>
+        <label>Canal<input id="cCh" inputmode="numeric" placeholder="1…13"></label>
+        <label>Adresa IP a nodului<input id="cIp" placeholder="192.168.x.1"></label>
+        <label>Mască<input id="cMask" placeholder="255.255.255.0"></label>
+        <label>Clienți maximi (max_connection)<input id="cMax" inputmode="numeric"></label>
+      </div>
+      <div class="buttons noprint"><button id="btnCheckCfg">Verifică configurația</button><button id="btnNoteCfg">Notează cazul în fișă</button></div>
+      <div id="cfgVerdict" role="status"></div>
+      <div id="apState" class="muted"></div>
+    </div>
+
+    <div class="exp" id="exp2">
+      <h2>Experiment 2 · Browserul simulat</h2>
+      <p>Scrieți o adresă și apăsați „Trimite”. Vedeți cererea HTTP, răspunsul serverului și ce afișează browserul. Încercați rutele <code>/</code>, <code>/data</code>, <code>/led?on=1</code>, <code>/led?on=0</code> și o rută care nu există.</p>
+      <div class="addr"><span aria-hidden="true">🌐</span><input id="url" aria-label="Adresa din browser" value="http://192.168.11.1/"><button id="btnGo">Trimite</button></div>
+      <div class="grid2">
+        <div><h3>Schimbul HTTP</h3><pre id="httpEx" class="http">—</pre></div>
+        <div><h3>Ce afișează browserul</h3><div id="screen" class="screen">—</div><p class="muted"><span class="led" id="ledDot"></span>LED-ul nodului (GPIO <span id="ledPin">—</span>)</p></div>
+      </div>
+      <div class="buttons noprint"><button id="btnNoteHttp">Notează cazul în fișă</button></div>
+    </div>
+
+    <div class="exp" id="exp3">
+      <h2>Experiment 3 · Clienții și încărcarea serverului</h2>
+      <p>Conectați pe rând dispozitive la rețeaua nodului. Fiecare browser deschis interoghează <code>/data</code> la T<sub>r</sub> secunde. Urmăriți limita de clienți și numărul de cereri pe minut.</p>
+      <div class="buttons noprint"><button id="btnAdd">Conectează un dispozitiv</button><button id="btnDrop">Deconectează ultimul</button><button id="btnClr">Golește</button><button id="btnNoteCli">Notează cazul în fișă</button></div>
+      <div class="clients" id="clients"></div>
+      <div id="cliVerdict" role="status"></div>
+    </div>
+  </section>
+
+  <section class="tab" id="tab-cod" role="tabpanel">
+    <h2>Programul pentru varianta voastră</h2>
+    <p>Programul folosește doar bibliotecile din pachetul Arduino-ESP32 (<code>WiFi.h</code>, <code>WebServer.h</code>). Parola este cea introdusă în Experiment 1; dacă nu e validă, programul folosește un marcaj de completat.</p>
+    <div class="buttons noprint"><button id="btnDl">Descarcă .ino</button><button id="btnCopy">Copiază</button></div>
+    <pre id="code"></pre>
+    <p class="muted">Programul nu a fost compilat pentru fiecare variantă. Dacă Arduino IDE raportează o eroare, notați mesajul în raport și cereți ajutor la laborator.</p>
+  </section>
+
+  <section class="tab" id="tab-fisa" role="tabpanel">
+    <h2>Fișa studentului</h2>
+    <p class="muted">Cod fișă: <b id="fCode">—</b> · completați, apoi „Verifică fișa”. Datele rămân doar în acest browser.</p>
+    <div class="fields" style="grid-template-columns:1fr 1fr">
+      <label>Nume și prenume<input id="fName" maxlength="80"></label>
+      <label>Grupa<input id="fGroup" maxlength="12" placeholder="141ID"></label>
+    </div>
+    <h3>1. Predicție</h3>
+    <label for="fPred">Ce se întâmplă cu pagina deschisă pe telefon dacă scoateți alimentarea nodului?</label>
+    <textarea id="fPred" maxlength="600"></textarea>
+    <h3>2. Rețeaua (Experiment 1)</h3>
+    <div class="fields">
+      <label>SSID<input id="fSsid"></label>
+      <label>Canal<input id="fCh" inputmode="numeric"></label>
+      <label>Lungimea parolei alese (caractere)<input id="fPassLen" inputmode="numeric"></label>
+      <label>Adresa IP a nodului<input id="fIp"></label>
+      <label>Masca<input id="fMask"></label>
+      <label>Clienți maximi<input id="fMax" inputmode="numeric"></label>
+    </div>
+    <h3>3. Rutele (Experiment 2)</h3>
+    <div class="fields">
+      <label>Codul HTTP pentru o rută inexistentă<input id="f404" inputmode="numeric"></label>
+      <label>Content-Type pentru /data<input id="fCt"></label>
+      <label>Adresa completă care aprinde LED-ul<input id="fLedUrl"></label>
+    </div>
+    <h3>4. Încărcarea (Experiment 3) – calculați înainte de verificare</h3>
+    <div class="fields">
+      <label>Cereri pe minut de la un client = 60/T<sub>r</sub><input id="fRpm1" inputmode="decimal"></label>
+      <label>Cereri pe minut la numărul maxim de clienți<input id="fRpmMax" inputmode="decimal"></label>
+    </div>
+    <h3>5. Capturi și concluzii</h3>
+    <p class="muted">C1 – configurația acceptată · C2 – răspunsul rutei /data · C3 – clientul refuzat.</p>
+    <label for="fConc">Concluzii (minimum trei propoziții)</label>
+    <textarea id="fConc" maxlength="1500"></textarea>
+    <div class="buttons noprint">
+      <button id="btnCheckSheet">Verifică fișa</button>
+      <button onclick="window.print()">Tipărește / Salvează PDF</button>
+      <button id="btnExportJSON">Export JSON</button>
+      <label style="display:inline-block"><span class="muted">Import JSON</span><input id="fileImport" type="file" accept="application/json,.json"></label>
+      <button id="btnExportCSV">Export CSV</button>
+    </div>
+    <div id="sheetStatus" role="status"></div>
+    <h3>Cazuri notate din banc</h3>
+    <div class="scroll"><table><thead><tr><th>Ora</th><th>Experiment</th><th>Rezultat</th></tr></thead><tbody id="caseRows"></tbody></table></div>
+  </section>
+
+  <section class="tab" id="tab-breviar" role="tabpanel">
+    <h2>Breviar</h2>
+    <details open><summary>Punctul de acces (softAP)</summary>
+      <p>În modul <b>AP</b>, ESP32 creează propria rețea Wi-Fi; clienții se conectează la ea ca la un router. Nu este nevoie de internet. Funcția Arduino-ESP32 este <code>WiFi.softAP(ssid, parola, canal, ascuns, max_connection)</code>; adresa nodului se fixează înainte cu <code>WiFi.softAPConfig(ip, poarta, masca)</code>.</p>
+      <p><b>Parola WPA2</b> are între 8 și 63 de caractere; o parolă mai scurtă face ca rețeaua să nu pornească. <b>Canalele</b> permise în Europa sunt 1…13. <b>max_connection</b> limitează numărul de stații conectate simultan (implicit 4).</p>
+    </details>
+    <details><summary>Adresarea</summary>
+      <div class="formula">rețeaua = IP AND mască · cu masca 255.255.255.0, clienții au aceleași prime trei numere ca nodul</div>
+      <p>Nodul este și poarta rețelei sale. Clienții primesc automat adrese prin DHCP din aceeași rețea; browserul trebuie să ceară adresa nodului, cu <code>http://</code> explicit.</p>
+    </details>
+    <details><summary>Serverul HTTP și rutele</summary>
+      <p>O <b>rută</b> leagă o metodă și o cale de o funcție: <code>server.on("/data", HTTP_GET, handleData)</code>. Rutele neînregistrate ajung la <code>onNotFound</code>, care răspunde <b>404</b>. Parametrii din adresă (<code>/led?on=1</code>) se citesc cu <code>server.arg("on")</code>. Pagina HTML se trimite cu <code>text/html</code>, datele cu <code>application/json</code>.</p>
+      <p>În <code>loop()</code> trebuie apelat des <code>server.handleClient()</code>; un <code>delay()</code> lung blochează răspunsurile.</p>
+    </details>
+    <details><summary>Încărcarea serverului</summary>
+      <div class="formula">cereri pe minut = număr clienți · 60 / T<sub>r</sub></div>
+      <p>Fiecare pagină deschisă care se reîmprospătează la T<sub>r</sub> secunde adaugă cereri. Un nod de măsurare servește puțini clienți; pentru mulți cititori, datele se trimit la un server separat (L03, L04, MQTT).</p>
+    </details>
+    <details><summary>Parametrizarea după N</summary>
+      <p>SSID = CDM-L02-N + N pe două cifre. Canal = 1, 6 sau 11 pentru N mod 3 = 0, 1, respectiv 2. IP nod = 192.168.(4 + N).1, mască 255.255.255.0. Clienți maximi = 2 + (N mod 3). T<sub>r</sub> = 1 + (N mod 4) s. LED: aceeași listă ca în L01, poziția (N−1) mod 14.</p>
+    </details>
+    <details><summary>Bibliografie</summary>
+      <p>Espressif, Arduino-ESP32 – Wi-Fi API (softAP, softAPConfig) și biblioteca WebServer; Espressif, ESP-IDF Programming Guide – Wi-Fi (mod AP); MDN Web Docs – HTTP response status codes, MIME types; cursurile CDM C02, C03 și C04.</p>
+    </details>
+  </section>
+
+  <footer>Conf.dr.ing. Argatu Florin Ciprian · CDM · 2026–2027 · L02 v<span id="verFoot"></span> · Aplicația rulează local și nu transmite note. · <a href="../index.html">Laboratorul virtual CDM</a></footer>
+</main>
+
+<script>
+'use strict';
+const VERSION = '1.0';
+const CODE = 'CDM-L02';
+const N_MIN = 1, N_MAX = 30, N_EXEMPLU = 7;
+const LED_PINS = [2, 5, 13, 14, 16, 17, 18, 19, 21, 22, 23, 25, 26, 27];
+const DEVICES = ['Laptop', 'Telefon 1', 'Telefon 2', 'Tabletă', 'Telefon 3', 'Telefon 4'];
+
+const $ = (id) => document.getElementById(id);
+const fmt = (v, d = 1) => Number.isFinite(v) ? v.toFixed(d).replace('.', ',') : '—';
+const num = (s) => { const v = parseFloat(String(s).trim().replace(',', '.')); return Number.isFinite(v) ? v : NaN; };
+function esc(t) { return String(t).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
+function status(id, msg, kind) { const el = $(id); el.className = kind ? 'verdict ' + kind : ''; el.innerHTML = msg; }
+function validN(n) { return Number.isInteger(n) && n >= N_MIN && n <= N_MAX; }
+function normUrl(s) { return String(s).trim().toLowerCase().replace(/\/+$/, ''); }
+
+function variant(N) {
+  const ip = '192.168.' + (4 + N) + '.1';
+  const ch = [1, 6, 11][N % 3];
+  const maxC = 2 + (N % 3);
+  const Tr = 1 + (N % 4);
+  return {
+    N, ssid: 'CDM-L02-N' + String(N).padStart(2, '0'), ch, ip, mask: '255.255.255.0', maxC, Tr,
+    led: LED_PINS[(N - 1) % LED_PINS.length],
+    rpm1: 60 / Tr, rpmMax: maxC * 60 / Tr,
+    code: CODE + '-N' + String(N).padStart(2, '0') + '-v' + VERSION
+  };
+}
+let V = null;
+let apOk = false, ledOn = false, uptime0 = Date.now(), clients = [];
+
+// ---------- Experiment 1
+function checkCfg() {
+  const e = [], w = [];
+  const ssid = $('cSsid').value.trim(), pass = $('cPass').value, ch = Number($('cCh').value), ip = $('cIp').value.trim(), mask = $('cMask').value.trim(), mx = Number($('cMax').value);
+  if (ssid !== V.ssid) e.push('SSID-ul cerut de variantă este ' + V.ssid + '.');
+  if (pass.length < 8 || pass.length > 63) e.push('Parola WPA2 trebuie să aibă 8…63 de caractere (acum ' + pass.length + ').');
+  else if (/^(.)\1+$/.test(pass) || /^(12345678|password|parola123)$/i.test(pass)) w.push('Parola este validă, dar ușor de ghicit.');
+  if (!Number.isInteger(ch) || ch < 1 || ch > 13) e.push('Canalul trebuie să fie între 1 și 13.');
+  else if (ch !== V.ch) e.push('Varianta cere canalul ' + V.ch + '.');
+  if (ip !== V.ip) e.push('Adresa nodului cerută de variantă este ' + V.ip + '.');
+  if (mask !== V.mask) e.push('Masca rețelei este ' + V.mask + '.');
+  if (!Number.isInteger(mx) || mx < 1 || mx > 10) e.push('max_connection trebuie să fie între 1 și 10.');
+  else if (mx !== V.maxC) e.push('Varianta cere ' + V.maxC + ' clienți maximi.');
+  return { e, w, pass };
+}
+function renderCfg(note) {
+  const r = checkCfg();
+  apOk = !r.e.length;
+  if (r.e.length) status('cfgVerdict', '<b>Rețeaua nu pornește.</b> ' + r.e.map(esc).join(' '), 'bad');
+  else if (r.w.length) status('cfgVerdict', '<b>Rețeaua pornește, cu observații.</b> ' + r.w.map(esc).join(' '), 'warn');
+  else status('cfgVerdict', '<b>Rețeaua pornește.</b> SSID ' + esc(V.ssid) + ', canal ' + V.ch + ', nod ' + V.ip + '.', 'ok');
+  $('apState').textContent = apOk ? 'Punct de acces activ: ' + V.ssid + ' · ' + V.ip + '/24 · maximum ' + V.maxC + ' clienți.' : 'Punct de acces oprit.';
+  renderCode();
+  if (note) addCase('1 · Rețeaua', apOk ? 'configurație acceptată' : 'respinsă: ' + r.e.join(' '));
+}
+
+// ---------- Experiment 2
+function signalT() { const t = (Date.now() - uptime0) / 1000; return 22 + 0.06 * V.N + 2 * Math.sin(2 * Math.PI * t / 64); }
+function serve(urlText) {
+  const reqLines = [], resp = { code: 0, reason: '', type: '', body: '', screen: '' };
+  let u;
+  try { u = new URL(urlText.trim()); } catch (err) { return { error: 'Adresa nu este validă. Scrieți și http:// la început.' }; }
+  if (u.protocol !== 'http:') return { error: 'Serverul nodului vorbește doar HTTP. Adresa trebuie să înceapă cu http://, nu cu ' + u.protocol + '//.' };
+  if (!apOk) return { error: 'Telefonul nu este conectat la rețeaua nodului: punctul de acces nu pornește (Experiment 1).' };
+  if (u.hostname !== V.ip) return { error: 'Nu se poate accesa ' + u.hostname + ': în rețeaua ' + V.ssid + ' nodul are adresa ' + V.ip + '.' };
+  const path = u.pathname, q = u.searchParams;
+  reqLines.push('GET ' + path + (u.search || '') + ' HTTP/1.1', 'Host: ' + u.hostname);
+  if (path === '/' ) {
+    Object.assign(resp, { code: 200, reason: 'OK', type: 'text/html', body: '<!doctype html>… pagina nodului …' });
+    resp.screen = '<b>Nodul ' + esc(V.ssid) + '</b><br>Temperatură de test: ' + fmt(signalT(), 2) + ' °C<br>LED: ' + (ledOn ? 'aprins' : 'stins') + '<br><span class="muted">Pagina citește /data la fiecare ' + V.Tr + ' s.</span>';
+  } else if (path === '/data') {
+    const body = JSON.stringify({ nod: V.ssid, uptime_s: Math.round((Date.now() - uptime0) / 1000), t_test_C: Number(signalT().toFixed(2)), led: ledOn ? 1 : 0 });
+    Object.assign(resp, { code: 200, reason: 'OK', type: 'application/json', body });
+    resp.screen = '<pre style="margin:0">' + esc(JSON.stringify(JSON.parse(body), null, 2)) + '</pre>';
+  } else if (path === '/led') {
+    const on = q.get('on');
+    if (on === '1' || on === '0') {
+      ledOn = on === '1';
+      Object.assign(resp, { code: 200, reason: 'OK', type: 'text/plain', body: 'LED=' + on });
+      resp.screen = 'LED=' + on;
+    } else {
+      Object.assign(resp, { code: 400, reason: 'Bad Request', type: 'text/plain', body: 'Parametrul on trebuie sa fie 0 sau 1' });
+      resp.screen = esc(resp.body);
+    }
+  } else {
+    Object.assign(resp, { code: 404, reason: 'Not Found', type: 'text/plain', body: 'Ruta inexistenta' });
+    resp.screen = 'Ruta inexistenta';
+  }
+  return { req: reqLines, resp };
+}
+let lastHttp = null;
+function go() {
+  const r = serve($('url').value);
+  lastHttp = { url: $('url').value.trim(), r };
+  if (r.error) { $('httpEx').textContent = '(nicio cerere HTTP trimisă)'; $('screen').innerHTML = '<span style="color:var(--bad)">' + esc(r.error) + '</span>'; }
+  else {
+    $('httpEx').textContent = '→ cerere\n' + r.req.join('\n') + '\n\n← răspuns\nHTTP/1.1 ' + r.resp.code + ' ' + r.resp.reason + '\nContent-Type: ' + r.resp.type + '\n\n' + r.resp.body;
+    $('screen').innerHTML = r.resp.screen;
+  }
+  $('ledDot').classList.toggle('on', ledOn);
+}
+
+// ---------- Experiment 3
+function renderClients() {
+  $('clients').innerHTML = clients.map((c) => '<div class="client' + (c.ok ? '' : ' refused') + '">' + esc(c.name) + '<br><span class="mono">' + (c.ok ? esc(c.ip) : 'refuzat') + '</span></div>').join('') || '<span class="muted">Niciun dispozitiv conectat.</span>';
+  const n = clients.filter((c) => c.ok).length, ref = clients.filter((c) => !c.ok).length;
+  const msg = 'Conectați: <b>' + n + '</b> din ' + V.maxC + ' · cereri /data pe minut: <b>' + fmt(n * 60 / V.Tr, 0) + '</b> (T<sub>r</sub> = ' + V.Tr + ' s)' + (ref ? ' · <b>' + ref + ' refuzat' + (ref > 1 ? 'e' : '') + '</b>: rețeaua acceptă cel mult ' + V.maxC + ' stații.' : '');
+  status('cliVerdict', apOk ? msg : 'Punctul de acces nu pornește; configurați rețeaua în Experiment 1.', apOk ? (ref ? 'warn' : 'ok') : 'bad');
+}
+function addClient() {
+  if (!apOk) { renderClients(); return; }
+  const name = DEVICES[clients.length % DEVICES.length] + (clients.length >= DEVICES.length ? ' (' + (clients.length + 1) + ')' : '');
+  const okN = clients.filter((c) => c.ok).length;
+  const ok = okN < V.maxC;
+  const base = V.ip.split('.').slice(0, 3).join('.');
+  clients.push({ name, ok, ip: ok ? base + '.' + (2 + okN) + ' (ilustrativ)' : '' });
+  renderClients();
+}
+
+// ---------- programul
+function renderCode() {
+  const r = checkCfg();
+  const pass = (r.pass.length >= 8 && r.pass.length <= 63) ? r.pass.replace(/\\/g, '\\\\').replace(/"/g, '\\"') : 'COMPLETATI_PAROLA';
+  const ip = V.ip.split('.').join(', ');
+  $('code').textContent =
+`// ${V.code} - ESP32: punct de acces + server web (CDM, L02)
+#include <WiFi.h>
+#include <WebServer.h>
+
+const char* SSID   = "${V.ssid}";
+const char* PAROLA = "${pass}";   // 8...63 caractere (WPA2)
+const int   CANAL  = ${V.ch};
+const int   MAX_CLIENTI = ${V.maxC};
+const int   PIN_LED = ${V.led};
+IPAddress ip(${ip}), masca(255, 255, 255, 0);
+
+WebServer server(80);
+bool ledAprins = false;
+
+float temperaturaTest() {             // semnal de test; in L04 devine citire DHT
+  return 22.0 + 0.06 * ${V.N} + 2.0 * sin(2.0 * PI * millis() / 64000.0);
+}
+
+void paginaPrincipala() {
+  String html = "<!doctype html><meta charset='utf-8'><title>${V.ssid}</title>"
+                "<h1>Nodul ${V.ssid}</h1><p id='v'>...</p>"
+                "<script>async function c(){const d=await(await fetch('/data')).json();"
+                "document.getElementById('v').textContent='T test: '+d.t_test_C+' C, LED: '+d.led;}"
+                "c();setInterval(c,${V.Tr * 1000});<\/script>";
+  server.send(200, "text/html", html);
+}
+
+void date() {
+  String json = "{\\"nod\\":\\"${V.ssid}\\",\\"uptime_s\\":" + String(millis() / 1000) +
+                ",\\"t_test_C\\":" + String(temperaturaTest(), 2) +
+                ",\\"led\\":" + String(ledAprins ? 1 : 0) + "}";
+  server.send(200, "application/json", json);
+}
+
+void led() {
+  String on = server.arg("on");
+  if (on != "0" && on != "1") { server.send(400, "text/plain", "Parametrul on trebuie sa fie 0 sau 1"); return; }
+  ledAprins = (on == "1");
+  digitalWrite(PIN_LED, ledAprins ? HIGH : LOW);
+  server.send(200, "text/plain", "LED=" + on);
+}
+
+void setup() {
+  Serial.begin(115200);
+  pinMode(PIN_LED, OUTPUT);
+  WiFi.mode(WIFI_AP);
+  WiFi.softAPConfig(ip, ip, masca);
+  if (!WiFi.softAP(SSID, PAROLA, CANAL, 0, MAX_CLIENTI)) {
+    Serial.println("Punctul de acces nu a pornit (verificati parola si canalul).");
+    while (true) delay(1000);
+  }
+  server.on("/", HTTP_GET, paginaPrincipala);
+  server.on("/data", HTTP_GET, date);
+  server.on("/led", HTTP_GET, led);
+  server.onNotFound([]() { server.send(404, "text/plain", "Ruta inexistenta"); });
+  server.begin();
+  Serial.printf("AP %s pe canalul %d, adresa http://%s\\n", SSID, CANAL, WiFi.softAPIP().toString().c_str());
+}
+
+void loop() {
+  server.handleClient();   // fara delay() lung: serverul trebuie sa raspunda
+}
+`;
+}
+
+// ---------- cazuri, fișă, export
+let cases = [];
+function addCase(exp, res) { cases.push({ ora: new Date().toLocaleTimeString('ro-RO'), exp, res }); renderCases(); saveLocal(); }
+function renderCases() {
+  $('caseRows').innerHTML = cases.map((c) => '<tr><td>' + esc(c.ora) + '</td><td>' + esc(c.exp) + '</td><td>' + esc(c.res) + '</td></tr>').join('') || '<tr><td colspan="3" class="muted">Niciun caz notat încă.</td></tr>';
+}
+const SHEET_FIELDS = ['fName', 'fGroup', 'fPred', 'fSsid', 'fCh', 'fPassLen', 'fIp', 'fMask', 'fMax', 'f404', 'fCt', 'fLedUrl', 'fRpm1', 'fRpmMax', 'fConc'];
+function sheetData() { const o = {}; SHEET_FIELDS.forEach((k) => { o[k] = $(k).value; }); return o; }
+function checkSheet() {
+  const d = sheetData(), rows = [];
+  const close = (a, b, tol) => Number.isFinite(a) && Math.abs(a - b) <= tol;
+  const pl = Number(d.fPassLen);
+  rows.push(['SSID', d.fSsid.trim() === V.ssid, '']);
+  rows.push(['Canal', Number(d.fCh) === V.ch, '1, 6 sau 11 după N']);
+  rows.push(['Lungimea parolei', Number.isInteger(pl) && pl >= 8 && pl <= 63, 'WPA2: 8…63']);
+  rows.push(['IP nod', d.fIp.trim() === V.ip, '']);
+  rows.push(['Mască', d.fMask.trim() === V.mask, '']);
+  rows.push(['Clienți maximi', Number(d.fMax) === V.maxC, '']);
+  rows.push(['Rută inexistentă', Number(d.f404) === 404, '']);
+  rows.push(['Content-Type /data', d.fCt.trim().toLowerCase() === 'application/json', '']);
+  rows.push(['Adresa LED', normUrl(d.fLedUrl) === normUrl('http://' + V.ip + '/led?on=1'), 'cu http:// și parametrul on=1']);
+  rows.push(['Cereri/min, un client', close(num(d.fRpm1), V.rpm1, 0.5), '60/T_r']);
+  rows.push(['Cereri/min, maxim', close(num(d.fRpmMax), V.rpmMax, 0.5), 'clienți · 60/T_r']);
+  rows.push(['Concluzii', d.fConc.trim().split(/[.!?]+/).filter((x) => x.trim().length > 3).length >= 3, 'minimum trei propoziții']);
+  const good = rows.filter((r) => r[1]).length;
+  $('sheetStatus').className = 'verdict ' + (good === rows.length ? 'ok' : 'warn');
+  $('sheetStatus').innerHTML = '<b>' + good + ' din ' + rows.length + ' puncte verificate corect.</b> Verificarea este orientativă și nu este notă.<div class="scroll"><table style="margin-top:8px"><tbody>' +
+    rows.map((r) => '<tr><td>' + esc(r[0]) + '</td><td class="check ' + (r[1] ? 'ok">corect' : 'bad">de revăzut') + '</td><td>' + esc(r[2]) + '</td></tr>').join('') + '</tbody></table></div>';
+  saveLocal();
+}
+function stamp() { return new Date().toISOString().slice(0, 19).replace('T', ' '); }
+function download(name, content, type) {
+  const blob = new Blob([content], { type }), u = URL.createObjectURL(blob), a = document.createElement('a');
+  a.href = u; a.download = name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(u), 1000);
+}
+function toCSV(rows) { return '\uFEFF' + rows.map((r) => r.map((c) => '"' + String(c).replace(/"/g, '""') + '"').join(';')).join('\r\n'); }
+function exportCSV() {
+  const d = sheetData(), base = [CODE, VERSION, V.N, stamp()];
+  const rows = [['CODE', 'VERSION', 'N', 'data_ora', 'marime', 'valoare', 'unitate']];
+  [['SSID', d.fSsid, '-'], ['canal', d.fCh, '-'], ['lungime_parola', d.fPassLen, 'caractere'], ['IP_nod', d.fIp, '-'], ['masca', d.fMask, '-'], ['clienti_maximi', d.fMax, '-'],
+   ['cod_ruta_inexistenta', d.f404, '-'], ['content_type_data', d.fCt, '-'], ['adresa_LED', d.fLedUrl, '-'], ['cereri_min_1client', d.fRpm1, '1/min'], ['cereri_min_maxim', d.fRpmMax, '1/min']]
+    .forEach((r) => rows.push(base.concat(r)));
+  cases.forEach((c) => rows.push(base.concat(['caz ' + c.exp, c.res, c.ora])));
+  download(CODE + '_N' + String(V.N).padStart(2, '0') + '_v' + VERSION + '.csv', toCSV(rows), 'text/csv;charset=utf-8');
+}
+function exportJSON() {
+  const o = { code: CODE, version: VERSION, N: V.N, variantCode: V.code, saved: stamp(), sheet: sheetData(), cases };
+  download(CODE + '_N' + String(V.N).padStart(2, '0') + '_v' + VERSION + '.json', JSON.stringify(o, null, 2), 'application/json');
+}
+function importJSON(file) {
+  const r = new FileReader();
+  r.onload = () => {
+    try {
+      const o = JSON.parse(r.result);
+      if (o.code !== CODE) throw new Error('fișierul nu este o fișă ' + CODE);
+      if (o.version !== VERSION) throw new Error('fișa este din versiunea ' + o.version + ', aplicația este ' + VERSION);
+      if (!validN(o.N) || typeof o.sheet !== 'object' || !Array.isArray(o.cases)) throw new Error('structură incompletă');
+      $('nInput').value = o.N; applyVariant(o.N, false);
+      SHEET_FIELDS.forEach((k) => { if (typeof o.sheet[k] === 'string') $(k).value = o.sheet[k]; });
+      cases = o.cases.filter((c) => c && typeof c.exp === 'string' && typeof c.res === 'string').map((c) => ({ ora: String(c.ora || ''), exp: c.exp, res: c.res }));
+      renderCases(); saveLocal();
+      status('sheetStatus', 'Fișa N = ' + o.N + ' a fost importată.', 'ok');
+    } catch (e) { status('sheetStatus', 'Import respins: ' + esc(e.message) + '.', 'bad'); }
+  };
+  r.readAsText(file);
+}
+function storeKey() { return CODE + '-' + VERSION; }
+function saveLocal() {
+  try { localStorage.setItem(storeKey(), JSON.stringify({ N: V.N, sheet: sheetData(), cases })); }
+  catch (e) { status('sheetStatus', 'Salvarea locală nu este disponibilă; folosiți Export JSON.', 'warn'); }
+}
+function restoreLocal() {
+  try { const o = JSON.parse(localStorage.getItem(storeKey()) || 'null'); return o && validN(o.N) ? o : null; } catch (e) { return null; }
+}
+
+// ---------- varianta
+function applyVariant(N, restoreSheet) {
+  if (!validN(N)) { status('nStatus', 'N trebuie să fie un număr întreg între ' + N_MIN + ' și ' + N_MAX + '.', 'bad'); return; }
+  V = variant(N);
+  $('vCode').textContent = V.code; $('fCode').textContent = V.code;
+  $('vData').innerHTML = 'SSID <b>' + V.ssid + '</b> · canal <b>' + V.ch + '</b> · nod <b>' + V.ip + '</b>/24 · maximum <b>' + V.maxC + '</b> clienți · reîmprospătare T<sub>r</sub> = <b>' + V.Tr + ' s</b> · LED pe <b>GPIO' + V.led + '</b>';
+  status('nStatus', 'Varianta N = ' + N + ' este activă.', '');
+  ['cSsid', 'cPass', 'cCh', 'cIp', 'cMask', 'cMax'].forEach((k) => { $(k).value = ''; });
+  apOk = false; ledOn = false; clients = []; uptime0 = Date.now();
+  $('ledPin').textContent = V.led; $('ledDot').classList.remove('on');
+  $('url').value = 'http://' + V.ip + '/';
+  $('httpEx').textContent = '—'; $('screen').textContent = '—';
+  status('cfgVerdict', '', ''); $('apState').textContent = 'Punct de acces oprit.';
+  renderClients(); renderCode();
+  if (restoreSheet) {
+    const o = restoreLocal();
+    if (o && o.N === N) { SHEET_FIELDS.forEach((k) => { if (o.sheet && typeof o.sheet[k] === 'string') $(k).value = o.sheet[k]; }); cases = Array.isArray(o.cases) ? o.cases : []; }
+    else { SHEET_FIELDS.forEach((k) => { $(k).value = ''; }); cases = []; }
+    renderCases();
+  }
+}
+
+// ---------- evenimente
+document.querySelectorAll('[role=tab]').forEach((b) => b.addEventListener('click', () => {
+  document.querySelectorAll('[role=tab]').forEach((x) => x.setAttribute('aria-selected', x === b ? 'true' : 'false'));
+  document.querySelectorAll('.tab').forEach((t) => t.classList.toggle('active', t.id === 'tab-' + b.dataset.tab));
+}));
+document.querySelectorAll('.expbtn').forEach((b) => b.addEventListener('click', () => {
+  document.querySelectorAll('.expbtn').forEach((x) => x.setAttribute('aria-pressed', x === b ? 'true' : 'false'));
+  document.querySelectorAll('.exp').forEach((e) => e.classList.toggle('active', e.id === 'exp' + b.dataset.exp));
+}));
+$('btnApply').addEventListener('click', () => applyVariant(Number($('nInput').value), true));
+$('btnExample').addEventListener('click', () => { $('nInput').value = N_EXEMPLU; applyVariant(N_EXEMPLU, true); });
+$('btnCheckCfg').addEventListener('click', () => renderCfg(false));
+$('btnNoteCfg').addEventListener('click', () => renderCfg(true));
+$('cPass').addEventListener('input', renderCode);
+$('btnGo').addEventListener('click', go);
+$('url').addEventListener('keydown', (e) => { if (e.key === 'Enter') go(); });
+$('btnNoteHttp').addEventListener('click', () => {
+  if (!lastHttp) return;
+  addCase('2 · Rutele', lastHttp.url + ' → ' + (lastHttp.r.error ? lastHttp.r.error : lastHttp.r.resp.code + ' ' + lastHttp.r.resp.type));
+});
+$('btnAdd').addEventListener('click', addClient);
+$('btnDrop').addEventListener('click', () => { clients.pop(); renderClients(); });
+$('btnClr').addEventListener('click', () => { clients = []; renderClients(); });
+$('btnNoteCli').addEventListener('click', () => {
+  const n = clients.filter((c) => c.ok).length, ref = clients.length - n;
+  addCase('3 · Clienții', n + ' conectați din ' + V.maxC + ', ' + ref + ' refuzați, ' + fmt(n * 60 / V.Tr, 0) + ' cereri/min');
+});
+$('btnDl').addEventListener('click', () => download('CDM_L02_N' + String(V.N).padStart(2, '0') + '.ino', $('code').textContent, 'text/plain;charset=utf-8'));
+$('btnCopy').addEventListener('click', () => { if (navigator.clipboard) navigator.clipboard.writeText($('code').textContent); });
+$('btnCheckSheet').addEventListener('click', checkSheet);
+$('btnExportJSON').addEventListener('click', exportJSON);
+$('btnExportCSV').addEventListener('click', exportCSV);
+$('fileImport').addEventListener('change', (e) => { if (e.target.files[0]) importJSON(e.target.files[0]); e.target.value = ''; });
+SHEET_FIELDS.forEach((k) => $(k).addEventListener('change', saveLocal));
+
+$('verLabel').textContent = VERSION; $('verFoot').textContent = VERSION;
+(function start() { const o = restoreLocal(); const N = o ? o.N : N_EXEMPLU; $('nInput').value = N; applyVariant(N, true); })();
+</script>
+</body>
+</html>
