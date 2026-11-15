@@ -1,0 +1,682 @@
+<!doctype html>
+<html lang="ro">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>CDM · L06 · Eșantionare și filtrare pe ESP32</title>
+  <style>
+    :root { --v:#6d28d9; --v-tint:#f5f3ff; --v-line:#d8cbed; --muted:#3f3a48; --ok:#1f7a3d; --ok-bg:#e6f4ea; --warn:#8a5a00; --warn-bg:#fff4d6; --bad:#a3191f; --bad-bg:#fde8e8; --teal:#087f8c; }
+    * { box-sizing:border-box; }
+    body { margin:0; background:#fff; color:#000; font:16px/1.6 system-ui,"Segoe UI",Arial,sans-serif; }
+    main { max-width:1180px; margin:auto; padding:26px 22px 60px; }
+    h1 { font-size:clamp(28px,4vw,42px); line-height:1.15; margin:8px 0 6px; }
+    h2 { font-size:24px; margin:0 0 14px; }
+    h3 { font-size:18px; margin:18px 0 8px; }
+    p { margin:8px 0 12px; }
+    header { border-bottom:3px solid var(--v); padding-bottom:16px; }
+    .kicker { font-size:14px; font-weight:700; }
+    .lead { font-size:18px; max-width:820px; }
+    .author { font-size:14px; color:var(--muted); }
+    .variant { display:grid; grid-template-columns:auto auto auto 1fr; gap:12px; align-items:end; margin:18px 0; padding:16px; background:var(--v-tint); border:1px solid var(--v-line); border-radius:12px; }
+    .variant input { width:110px; }
+    .vcode { font-weight:700; }
+    .vdata { grid-column:1/-1; font-size:15px; }
+    label { display:block; font-size:14px; font-weight:650; }
+    input, select, textarea { display:block; width:100%; margin-top:4px; padding:9px; border:1px solid #9a93a6; border-radius:6px; font:inherit; background:#fff; color:#000; }
+    textarea { min-height:70px; }
+    button { font:600 14px system-ui,Arial,sans-serif; padding:10px 14px; background:var(--v-tint); border:1px solid var(--v); border-radius:7px; cursor:pointer; color:#000; }
+    button:hover { background:#ebe3ff; }
+    button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible { outline:3px solid var(--teal); outline-offset:2px; }
+    button[aria-pressed="true"], button[aria-selected="true"] { background:var(--v); color:#fff; }
+    .buttons { display:flex; flex-wrap:wrap; gap:8px; margin:12px 0; }
+    .tabs { display:flex; flex-wrap:wrap; gap:8px; margin:18px 0 6px; }
+    .tabs button { border-radius:7px 7px 0 0; }
+    .tab { display:none; padding:18px 0; }
+    .tab.active { display:block; }
+    .grid2 { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:22px; }
+    .grid3 { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:14px; }
+    .panel { border:1px solid var(--v-line); border-radius:12px; padding:16px; background:#fff; min-width:0; }
+    .note { background:var(--v-tint); border-left:4px solid var(--v); padding:12px 14px; border-radius:0 8px 8px 0; }
+    .muted { color:var(--muted); font-size:14px; }
+    .exp { display:none; }
+    .exp.active { display:block; }
+    .verdict { padding:10px 12px; border-radius:8px; margin:8px 0; font-size:15px; }
+    .verdict.ok { background:var(--ok-bg); color:var(--ok); }
+    .verdict.warn { background:var(--warn-bg); color:var(--warn); }
+    .verdict.bad { background:var(--bad-bg); color:var(--bad); }
+    .fields { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:12px; }
+    .mono, pre, code { font-family:ui-monospace,Consolas,monospace; }
+    pre { background:#f7f6f9; border:1px solid var(--v-line); border-radius:8px; padding:12px; overflow:auto; font-size:13px; line-height:1.5; white-space:pre; }
+    .addr { display:flex; gap:8px; align-items:center; background:#f1f0f4; border:1px solid #c9c3d3; border-radius:22px; padding:6px 8px 6px 14px; }
+    .addr input { border:0; background:transparent; margin:0; padding:6px; }
+    .addr input:focus-visible { outline:2px solid var(--teal); }
+    .screen { border:1px solid var(--v-line); border-radius:8px; min-height:150px; padding:14px; background:#fff; margin-top:10px; }
+    .http { font-size:13px; }
+    table { border-collapse:collapse; width:100%; font-size:14px; }
+    th, td { border:1px solid #cfc7dc; padding:7px 8px; text-align:left; vertical-align:top; }
+    th { background:#f1ebfa; }
+    .scroll { overflow-x:auto; }
+    .check { font-weight:700; }
+    .check.ok { color:var(--ok); } .check.bad { color:var(--bad); }
+    .clients { display:flex; flex-wrap:wrap; gap:8px; margin:10px 0; }
+    .client { border:1px solid var(--v-line); border-radius:8px; padding:8px 10px; font-size:14px; background:var(--v-tint); }
+    .client.refused { background:var(--bad-bg); color:var(--bad); border-color:#e7b3b5; }
+    .led { display:inline-block; width:16px; height:16px; border-radius:50%; background:#9ca3af; vertical-align:-3px; margin-right:6px; border:1px solid #555; }
+    .led.on { background:#f59e0b; box-shadow:0 0 10px #f59e0b; }
+    details { border:1px solid var(--v-line); border-radius:8px; padding:10px 14px; margin:10px 0; }
+    summary { cursor:pointer; font-weight:700; }
+    .formula { font:18px Cambria,Georgia,serif; padding:8px; background:#f7f6f9; border-radius:6px; overflow-x:auto; }
+    svg text { font-family:system-ui,Arial,sans-serif; }
+    footer { margin-top:30px; padding-top:14px; border-top:1px solid var(--v-line); font-size:13px; color:var(--muted); }
+    footer a { color:#000; }
+    @media (max-width:700px) { .grid2,.grid3,.fields { grid-template-columns:1fr; } .variant { grid-template-columns:1fr 1fr; } }
+    @media print { .noprint,.tabs,.variant .buttons { display:none !important; } .tab { display:none !important; } #tab-fisa { display:block !important; } main { max-width:none; padding:0; } body { font-size:12pt; } }
+    canvas { display:block; width:100%; height:260px; border:1px solid var(--v-line); border-radius:8px; background:#fff; }
+    input[type=range] { padding:0; }
+    .metrics { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:10px; margin:12px 0; }
+    .metric { border:1px solid var(--v-line); border-radius:8px; padding:10px; } .metric small { display:block; font-size:13px; color:var(--muted); } .metric b { font-size:20px; }
+    @media (max-width:700px) { .metrics { grid-template-columns:repeat(2,minmax(0,1fr)); } }
+    .hero { display:grid; grid-template-columns:minmax(0,1.6fr) minmax(0,1fr); gap:22px; align-items:center; }
+    .chain svg { width:100%; height:auto; display:block; }
+    .chain .blk { fill:#fff; stroke:var(--v); stroke-width:2; }
+    .chain .blk.hot { fill:var(--v-tint); }
+    .chain text { font-size:13px; }
+    .chain .t1 { font-weight:700; font-size:14px; }
+    .flow { stroke:var(--v); stroke-width:2.5; fill:none; stroke-dasharray:6 6; animation:flow 1.2s linear infinite; }
+    @keyframes flow { to { stroke-dashoffset:-24; } }
+    @media (prefers-reduced-motion: reduce) { .flow { animation:none; } }
+    .legend { display:flex; flex-wrap:wrap; gap:14px; font-size:14px; margin:6px 0; }
+    .legend i { display:inline-block; width:22px; height:4px; vertical-align:middle; margin-right:6px; border-radius:2px; }
+    .ctl { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:12px; align-items:end; }
+    .bigval { font-size:28px; font-weight:800; color:var(--v); }
+    .tag { display:inline-block; padding:2px 8px; border-radius:10px; font-size:13px; font-weight:700; }
+    .tag.ok { background:var(--ok-bg); color:var(--ok); } .tag.bad { background:var(--bad-bg); color:var(--bad); }
+    canvas.tall { height:300px; } canvas.short { height:200px; }
+    @media (max-width:700px) { .hero,.ctl { grid-template-columns:1fr; } }
+  </style>
+</head>
+<body>
+<main>
+  <header>
+    <div class="kicker">CDM · Concepția asistată de calculator a sistemelor distribuite de măsurare · Anul IV</div>
+    <h1>Eșantionare și filtrare pe ESP32</h1>
+    <p class="lead">Alegeți frecvența de eșantionare, vedeți alierea, dimensionați filtrul RC din fața ADC-ului, curățați zgomotul cu un filtru digital și trimiteți la nodul A doar valori utile. Aplicație însoțitoare pentru Cap. IV – Proiectarea circuitelor de eșantionare și filtrare.</p>
+    <div class="author">Conf.dr.ing. Argatu Florin Ciprian · laboratorul L06 · versiunea <span id="verLabel"></span></div>
+  </header>
+
+  <section class="variant" aria-label="Varianta individuală">
+    <div><label for="nInput">N – numărul vostru (1…30)</label><input id="nInput" type="number" min="1" max="30" step="1" value="7"></div>
+    <div class="buttons noprint"><button id="btnApply">Aplică varianta N</button><button id="btnExample">Exemplul N = 7</button></div>
+    <div><div class="muted">Codul variantei</div><div class="vcode" id="vCode">—</div></div>
+    <p id="nStatus" role="status" class="muted"></p>
+    <div class="vdata" id="vData"></div>
+  </section>
+
+  <div class="tabs noprint" role="tablist">
+    <button role="tab" data-tab="start" aria-selected="true">1 · Începe aici</button>
+    <button role="tab" data-tab="banc" aria-selected="false">2 · Banc virtual</button>
+    <button role="tab" data-tab="fisa" aria-selected="false">3 · Fișa studentului</button>
+    <button role="tab" data-tab="breviar" aria-selected="false">4 · Breviar</button>
+  </div>
+
+  <section class="tab active" id="tab-start" role="tabpanel">
+    <h2>Lanțul de măsurare pe care îl proiectați</h2>
+    <div class="hero">
+      <div class="chain panel">
+        <svg viewBox="0 0 660 230" role="img" aria-label="Senzor, filtru RC, ADC, filtru digital, decimare, HTTP către nodul A">
+          <defs><marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#6d28d9"/></marker></defs>
+          <rect class="blk" x="6" y="20" width="124" height="66" rx="10"/><text class="t1" x="68" y="46" text-anchor="middle">Senzor</text><text x="68" y="66" text-anchor="middle">semnal lent</text><text x="68" y="80" text-anchor="middle">+ 50 Hz, zgomot</text>
+          <rect class="blk hot" x="176" y="20" width="114" height="66" rx="10"/><text class="t1" x="233" y="46" text-anchor="middle">Filtru RC</text><text x="233" y="66" text-anchor="middle">antialias</text><text x="233" y="80" text-anchor="middle">Exp. 2</text>
+          <rect class="blk hot" x="336" y="20" width="118" height="66" rx="10"/><text class="t1" x="395" y="46" text-anchor="middle">ADC ESP32</text><text x="395" y="66" text-anchor="middle">f<tspan baseline-shift="sub" font-size="10">s</tspan> din variantă</text><text x="395" y="80" text-anchor="middle">Exp. 1</text>
+          <rect class="blk hot" x="500" y="20" width="154" height="66" rx="10"/><text class="t1" x="577" y="46" text-anchor="middle">Filtru digital</text><text x="577" y="66" text-anchor="middle">medie mobilă / EMA</text><text x="577" y="80" text-anchor="middle">Exp. 3</text>
+          <path class="flow" d="M130,53 H172" marker-end="url(#ar)"/><path class="flow" d="M290,53 H332" marker-end="url(#ar)"/><path class="flow" d="M454,53 H496" marker-end="url(#ar)"/>
+          <path class="flow" d="M577,86 V146 H486" marker-end="url(#ar)"/>
+          <rect class="blk hot" x="326" y="118" width="156" height="56" rx="10"/><text class="t1" x="404" y="142" text-anchor="middle">Decimare</text><text x="404" y="162" text-anchor="middle">1 mesaj la T<tspan baseline-shift="sub" font-size="10">tx</tspan> · Exp. 4</text>
+          <path class="flow" d="M326,146 H250" marker-end="url(#ar)"/>
+          <rect class="blk" x="60" y="118" width="186" height="56" rx="10"/><text class="t1" x="153" y="142" text-anchor="middle">Nod A (L03/L04)</text><text x="153" y="162" text-anchor="middle">POST /data · 192.168.4.1</text>
+          <text x="330" y="208" text-anchor="middle" font-size="13" fill="#3f3a48">Fiecare bloc are o decizie de proiectare; în fișă o justificați cu un calcul.</text>
+        </svg>
+      </div>
+      <div>
+        <p>În L05 ați ales rezoluția și domeniul ADC-ului. Acum rămâne <b>când</b> citiți (f<sub>s</sub>) și <b>ce</b> trimiteți. Un ADC rapid fără filtru vede perturbații care se „pliază” în banda utilă; un nod care trimite fiecare eșantion încarcă rețeaua degeaba.</p>
+        <div class="note">Legătura cu cursul: Cap. IV din fișa CDM. Partea analogică (Butterworth, Sallen-Key) este dezvoltată în CCM C05 – Filtre analogice.</div>
+      </div>
+    </div>
+    <div class="grid3" style="margin-top:18px">
+      <div class="panel"><h3>Parcurs (120 min)</h3><p>25 min – alierea (Experiment 1)<br>25 min – filtrul RC (Experiment 2)<br>35 min – filtrul digital (Experiment 3)<br>15 min – decimare și firmware (Experiment 4)<br>20 min – fișa și concluziile</p></div>
+      <div class="panel"><h3>Ce predați</h3><p>Fișa completată (PDF din „Tipărește / Salvează PDF”), fișierul JSON al fișei și trei capturi: C1 – eșantioanele și sinusoida aliată a variantei, C2 – caracteristica filtrului RC ales, C3 – semnalul brut și cele două filtre digitale.</p></div>
+      <div class="panel"><h3>Ipotezele modelului</h3><p>Eșantionare ideală, fără jitter. Filtrul RC de ordinul 1, fără încărcarea dată de intrarea ADC. Zgomotul este alb, gaussian, generat din N (aceeași variantă dă același zgomot). Firmware-ul generat este un punct de plecare, nu a fost compilat pentru placa voastră.</p></div>
+    </div>
+    <div class="note"><b>Aceasta este o simulare.</b> Aplicația nu se conectează la placă și nu transmite note. Rezultatele sunt calcule de proiectare, nu măsurări.</div>
+  </section>
+
+  <section class="tab" id="tab-banc" role="tabpanel">
+    <div class="buttons noprint" role="group" aria-label="Experimente">
+      <button class="expbtn" data-exp="1" aria-pressed="true">Experiment 1 · Alierea</button>
+      <button class="expbtn" data-exp="2" aria-pressed="false">Experiment 2 · Filtrul RC</button>
+      <button class="expbtn" data-exp="3" aria-pressed="false">Experiment 3 · Filtrul digital</button>
+      <button class="expbtn" data-exp="4" aria-pressed="false">Experiment 4 · Decimare și firmware</button>
+    </div>
+
+    <div class="exp active" id="exp1">
+      <h2>Experiment 1 · Eșantionarea și alierea</h2>
+      <p>La intrare ajunge o componentă de <b id="e1f0">—</b> Hz. Nodul vostru eșantionează cu f<sub>s</sub> = <b id="e1fs">—</b> Hz. Ce frecvență „vede” programul?</p>
+      <div class="ctl">
+        <label for="fsSlider">f<sub>s</sub> explorare: <span id="fsVal">—</span> Hz<input id="fsSlider" type="range" min="20" max="2000" step="5"></label>
+        <label for="f0Slider">f<sub>0</sub> explorare: <span id="f0Val">—</span> Hz<input id="f0Slider" type="range" min="5" max="1500" step="1"></label>
+        <div class="buttons noprint" style="margin:0"><button id="btnFsVar">Valorile variantei</button><button id="btnNoteA">Notează cazul în fișă</button></div>
+      </div>
+      <div class="buttons noprint"><button id="btnPlay">▶ Play</button><button id="btnPause">❚❚ Pauză</button><button id="btnReset">↺ Reset timp</button><label style="display:inline-block;min-width:200px">Viteza de redare<select id="speed"><option value="0.02">0,02×</option><option value="0.05" selected>0,05×</option><option value="0.1">0,1×</option><option value="0.25">0,25×</option></select></label></div>
+      <div class="metrics">
+        <div class="metric"><small>f<sub>Nyquist</sub> = f<sub>s</sub>/2</small><b id="mNy">—</b></div>
+        <div class="metric"><small>Frecvența aparentă f<sub>a</sub></small><b id="mFa">—</b></div>
+        <div class="metric"><small>f<sub>s</sub> minim pentru f<sub>0</sub></small><b id="mFsMin">—</b></div>
+        <div class="metric"><small>Verdict</small><b id="mVer">—</b></div>
+      </div>
+      <canvas id="cvT" class="tall" aria-label="Semnalul continuu, eșantioanele și sinusoida aparentă"></canvas>
+      <div class="legend"><span><i style="background:#c4b5fd"></i>semnalul real f<sub>0</sub></span><span><i style="background:#6d28d9;height:8px;width:8px;border-radius:50%"></i>eșantioane</span><span><i style="background:#087f8c"></i>ce reconstituie programul (f<sub>a</sub>)</span></div>
+      <canvas id="cvS" class="short" aria-label="Spectrul: frecvența reală, imaginile ei și pliul Nyquist"></canvas>
+      <p class="muted">Spectrul: linia violet este f<sub>0</sub>; liniile palide sunt imaginile k·f<sub>s</sub> ± f<sub>0</sub>; zona hașurată 0…f<sub>s</sub>/2 este tot ce poate vedea programul; linia turcoaz este f<sub>a</sub>.</p>
+    </div>
+
+    <div class="exp" id="exp2">
+      <h2>Experiment 2 · Filtrul RC antialias din fața ADC-ului</h2>
+      <p>Senzorul variază lent (bandă utilă B = <b id="e2B">—</b> Hz), dar firele culeg brum de rețea la f<sub>p</sub> = 50 Hz. Cerința: atenuare de cel puțin <b id="e2A">—</b> dB la 50 Hz, cu R = 10 kΩ. Alegeți C din seria E12.</p>
+      <div class="fields">
+        <label>C ales (µF)<select id="selC"></select></label>
+        <div class="buttons noprint" style="margin:0;align-self:end"><button id="btnCheckRC">Verifică alegerea</button><button id="btnNoteRC">Notează cazul în fișă</button></div>
+      </div>
+      <div class="metrics">
+        <div class="metric"><small>f<sub>c</sub> = 1/(2πRC)</small><b id="mFc">—</b></div>
+        <div class="metric"><small>Atenuare la 50 Hz</small><b id="mAp">—</b></div>
+        <div class="metric"><small>Eroare de amplitudine la B</small><b id="mGe">—</b></div>
+        <div class="metric"><small>τ = RC</small><b id="mTau">—</b></div>
+      </div>
+      <div id="rcVerdict" role="status"></div>
+      <canvas id="cvB" class="tall" aria-label="Caracteristica de amplitudine a filtrului RC"></canvas>
+      <p class="muted">Axa orizontală este logaritmică, 0,01…1000 Hz. Zona roșie: cerința de atenuare la 50 Hz. Linia turcoaz: banda utilă B.</p>
+    </div>
+
+    <div class="exp" id="exp3">
+      <h2>Experiment 3 · Medie mobilă și filtru exponențial (EMA)</h2>
+      <p>ADC-ul dă coduri cu zgomot σ = <b id="e3sig">—</b> LSB. La eșantionul 300 senzorul face un salt de <b id="e3step">—</b> LSB. Comparați medie mobilă cu M eșantioane și EMA cu factorul α.</p>
+      <div class="ctl">
+        <label for="mSlider">M (medie mobilă): <span id="mVal">—</span><input id="mSlider" type="range" min="1" max="64" step="1"></label>
+        <label for="aSlider">α (EMA): <span id="aVal">—</span><input id="aSlider" type="range" min="0.02" max="1" step="0.01"></label>
+        <div class="buttons noprint" style="margin:0"><button id="btnMAvar">M și α ale variantei</button><button id="btnNoteF">Notează cazul în fișă</button></div>
+      </div>
+      <label style="max-width:360px"><input type="checkbox" id="hum" style="display:inline;width:auto;margin-right:6px">Adaugă și brum de 50 Hz rămas după filtrul RC</label>
+      <div class="metrics">
+        <div class="metric"><small>σ brut măsurat</small><b id="mS0">—</b></div>
+        <div class="metric"><small>σ medie mobilă (măsurat / teoretic)</small><b id="mS1">—</b></div>
+        <div class="metric"><small>σ EMA (măsurat / teoretic)</small><b id="mS2">—</b></div>
+        <div class="metric"><small>Întârziere MA · t<sub>90</sub> EMA</small><b id="mDl">—</b></div>
+      </div>
+      <canvas id="cvF" class="tall" aria-label="Semnalul brut, media mobilă și filtrul exponențial"></canvas>
+      <div class="legend"><span><i style="background:#cbd5e1"></i>brut</span><span><i style="background:#6d28d9"></i>medie mobilă M</span><span><i style="background:#087f8c"></i>EMA α</span><span><i style="background:#a3191f;height:2px"></i>valoarea adevărată</span></div>
+      <p class="muted" id="humHint"></p>
+    </div>
+
+    <div class="exp" id="exp4">
+      <h2>Experiment 4 · Decimare și firmware</h2>
+      <p>Nodul eșantionează cu f<sub>s</sub> = <b id="e4fs">—</b> Hz, dar trimite la nodul A o singură valoare filtrată la T<sub>tx</sub> = <b id="e4T">—</b> s.</p>
+      <div class="metrics">
+        <div class="metric"><small>Eșantioane pe mesaj</small><b id="mSpm">—</b></div>
+        <div class="metric"><small>Mesaje pe oră</small><b id="mMph">—</b></div>
+        <div class="metric"><small>Payload JSON</small><b id="mPl">—</b></div>
+        <div class="metric"><small>Octeți utili pe oră</small><b id="mBph">—</b></div>
+      </div>
+      <h3>Mesajul trimis (POST /data)</h3>
+      <pre id="payload"></pre>
+      <h3>Schița Arduino-ESP32 pentru varianta voastră</h3>
+      <div class="buttons noprint"><button id="btnCopy">Copiază codul</button><button id="btnIno">Descarcă .ino</button><span id="copyStatus" role="status" class="muted"></span></div>
+      <pre id="sketch"></pre>
+      <p class="muted">Scrisă pentru nucleul Arduino-ESP32 3.x (API timer: timerBegin, timerAttachInterrupt, timerAlarm). Rețeaua, parola și adresa trebuie aduse la nodul A din L03/L04. Necompilată pe placă.</p>
+    </div>
+  </section>
+
+  <section class="tab" id="tab-fisa" role="tabpanel">
+    <h2>Fișa studentului</h2>
+    <p class="muted">Cod fișă: <b id="fCode">—</b> · completați, apoi „Verifică fișa”. Datele rămân doar în acest browser. Folosiți virgula sau punctul pentru zecimale.</p>
+    <div class="fields" style="grid-template-columns:1fr 1fr">
+      <label>Nume și prenume<input id="fName" maxlength="80"></label>
+      <label>Grupa<input id="fGroup" maxlength="12" placeholder="141ID"></label>
+    </div>
+    <h3>1. Alierea (Experiment 1) – calculați înainte de verificare</h3>
+    <div class="fields">
+      <label>f<sub>Nyquist</sub> (Hz)<input id="fNy" inputmode="decimal"></label>
+      <label>Frecvența aparentă f<sub>a</sub> (Hz)<input id="fFa" inputmode="decimal"></label>
+      <label>f<sub>s</sub> minim pentru f<sub>0</sub> (Hz)<input id="fFsMin" inputmode="decimal"></label>
+    </div>
+    <h3>2. Filtrul RC (Experiment 2)</h3>
+    <div class="fields">
+      <label>f<sub>c</sub> maxim admis (Hz)<input id="fFcMax" inputmode="decimal"></label>
+      <label>C minim (µF)<input id="fCmin" inputmode="decimal"></label>
+      <label>C ales din E12 (µF)<input id="fCe" inputmode="decimal"></label>
+      <label>Atenuarea reală la 50 Hz (dB)<input id="fAtt" inputmode="decimal"></label>
+      <label>Eroarea de amplitudine la B (%)<input id="fGe" inputmode="decimal"></label>
+    </div>
+    <h3>3. Filtrul digital (Experiment 3)</h3>
+    <div class="fields">
+      <label>σ după media mobilă (LSB)<input id="fSma" inputmode="decimal"></label>
+      <label>Întârzierea mediei mobile (ms)<input id="fDel" inputmode="decimal"></label>
+      <label>σ după EMA (LSB)<input id="fSema" inputmode="decimal"></label>
+      <label>n<sub>90</sub> EMA (eșantioane)<input id="fN90" inputmode="numeric"></label>
+      <label>t<sub>90</sub> EMA (ms)<input id="fT90" inputmode="decimal"></label>
+    </div>
+    <h3>4. Decimare (Experiment 4)</h3>
+    <div class="fields">
+      <label>Eșantioane pe mesaj<input id="fSpm" inputmode="numeric"></label>
+      <label>Mesaje pe oră<input id="fMph" inputmode="numeric"></label>
+      <label>Octeți utili pe oră<input id="fBph" inputmode="numeric"></label>
+    </div>
+    <h3>5. Concluzii</h3>
+    <label for="fConc">Concluzii (minimum trei propoziții)</label>
+    <textarea id="fConc" maxlength="1500"></textarea>
+    <div class="buttons noprint">
+      <button id="btnCheckSheet">Verifică fișa</button>
+      <button onclick="window.print()">Tipărește / Salvează PDF</button>
+      <button id="btnExportJSON">Export JSON</button>
+      <label style="display:inline-block"><span class="muted">Import JSON</span><input id="fileImport" type="file" accept="application/json,.json"></label>
+      <button id="btnExportCSV">Export CSV</button>
+    </div>
+    <div id="sheetStatus" role="status"></div>
+    <h3>Cazuri notate din banc</h3>
+    <div class="scroll"><table><thead><tr><th>Ora</th><th>Experiment</th><th>Rezultat</th></tr></thead><tbody id="caseRows"></tbody></table></div>
+  </section>
+
+  <section class="tab" id="tab-breviar" role="tabpanel">
+    <h2>Breviar</h2>
+    <details open><summary>Teorema eșantionării și alierea</summary>
+      <div class="formula">f<sub>s</sub> &gt; 2·f<sub>max</sub> · f<sub>N</sub> = f<sub>s</sub>/2 · f<sub>a</sub> = | f<sub>0</sub> − k·f<sub>s</sub> |, cu k = round(f<sub>0</sub>/f<sub>s</sub>)</div>
+      <p>După eșantionare nu se mai poate deosebi f<sub>0</sub> de orice f<sub>0</sub> ± k·f<sub>s</sub>. Programul vede mereu frecvența pliată în intervalul 0…f<sub>s</sub>/2. Alierea nu se repară în software: componenta trebuie atenuată <b>înainte</b> de ADC.</p>
+    </details>
+    <details><summary>Filtrul RC de ordinul 1</summary>
+      <div class="formula">f<sub>c</sub> = 1/(2πRC) · A(f) = 10·lg[1 + (f/f<sub>c</sub>)²] dB · f<sub>c,max</sub> = f<sub>p</sub> / √(10<sup>A/10</sup> − 1) · C<sub>min</sub> = 1/(2πR·f<sub>c,max</sub>)</div>
+      <p>Eroarea de amplitudine la frecvența utilă B: ε = [1 − 1/√(1 + (B/f<sub>c</sub>)²)]·100 %. Panta este doar 20 dB/decadă: cerințe mari de atenuare apropie f<sub>c</sub> de banda utilă. De aceea se folosesc filtre de ordin mai mare (CCM C05) sau se completează cu filtrare digitală. Seria E12: 1,0 · 1,2 · 1,5 · 1,8 · 2,2 · 2,7 · 3,3 · 3,9 · 4,7 · 5,6 · 6,8 · 8,2 (× 10<sup>k</sup>). Se alege valoarea standard imediat <b>mai mare</b> decât C<sub>min</sub>.</p>
+    </details>
+    <details><summary>Medie mobilă (MA)</summary>
+      <div class="formula">y[n] = (1/M)·Σ<sub>k=0…M−1</sub> x[n−k] · σ<sub>MA</sub> = σ/√M · întârziere = (M − 1)/2 eșantioane = (M − 1)/(2·f<sub>s</sub>)</div>
+      <p>Cel mai bun filtru pentru a reduce zgomotul alb păstrând un front abrupt (Smith, cap. 15). Are zerouri la multiplii lui f<sub>s</sub>/M: dacă M·50/f<sub>s</sub> este întreg, brumul de 50 Hz dispare complet. Se implementează cu un buffer circular și o sumă actualizată, deci costă O(1) pe eșantion.</p>
+    </details>
+    <details><summary>Filtrul exponențial (EMA)</summary>
+      <div class="formula">y[n] = y[n−1] + α·(x[n] − y[n−1]) · σ<sub>EMA</sub> = σ·√(α/(2 − α)) · n<sub>90</sub> = ⌈ ln 0,1 / ln(1 − α) ⌉ · t<sub>90</sub> = n<sub>90</sub>/f<sub>s</sub></div>
+      <p>Echivalentul digital al filtrului RC. Nu are nevoie de buffer: o singură variabilă. α mic înseamnă zgomot mic, dar răspuns lent; constanta de timp echivalentă este aproximativ 1/(α·f<sub>s</sub>).</p>
+    </details>
+    <details><summary>Decimare și încărcarea rețelei</summary>
+      <div class="formula">eșantioane pe mesaj = f<sub>s</sub>·T<sub>tx</sub> · mesaje pe oră = 3600/T<sub>tx</sub> · octeți pe oră = mesaje pe oră × lungimea payload-ului</div>
+      <p>Filtrul digital face și rolul de filtru antialias pentru decimare: înainte de a trimite o valoare la T<sub>tx</sub>, conținutul de peste 1/(2·T<sub>tx</sub>) trebuie să fie deja atenuat. Octeții numărați aici sunt doar cei utili; antetele HTTP și TCP adaugă câteva sute de octeți la fiecare mesaj.</p>
+    </details>
+    <details><summary>Parametrizarea după N</summary>
+      <p id="paramText"></p>
+    </details>
+    <details><summary>Bibliografie</summary>
+      <p>Espressif, ESP-IDF Programming Guide – ADC Continuous Mode Driver și ADC Calibration; Espressif, Arduino-ESP32 – Timer API (3.x), HTTPClient; S. W. Smith, The Scientist and Engineer's Guide to Digital Signal Processing, cap. 3 (ADC/DAC) și cap. 15 (Moving Average Filters), dspguide.com; W. Kester, MT-002 What the Nyquist Criterion Means to Your Sampled Data System Design, Analog Devices; National Instruments, Acquiring an Analog Signal; Tektronix/Keithley, Data Acquisition and Control Handbook; C. Cepișcă, Prelucrarea semnalelor analogice, Ed. Electra, 2005; cursul CDM, Cap. IV; CCM C05 – Filtre analogice.</p>
+    </details>
+  </section>
+
+  <footer>Conf.dr.ing. Argatu Florin Ciprian · CDM · 2026–2027 · L06 v<span id="verFoot"></span> · Aplicația rulează local și nu transmite note. · <a href="../index.html">Laboratorul virtual CDM</a></footer>
+</main>
+<script>
+'use strict';
+const VERSION = '1.0';
+const CODE = 'CDM-L06';
+const N_MIN = 1, N_MAX = 30, N_EXEMPLU = 7;
+const R_RC = 1e4, F_HUM = 50, NS = 600, STEP_AT = 300;
+const E12 = [1.0, 1.2, 1.5, 1.8, 2.2, 2.7, 3.3, 3.9, 4.7, 5.6, 6.8, 8.2];
+const C_LIST = [0.1, 1, 10].flatMap((d) => E12.map((m) => Math.round(m * d * 1000) / 1000)).concat([100]);
+const COL = { v: '#6d28d9', vl: '#c4b5fd', t: '#087f8c', g: '#cbd5e1', r: '#a3191f', ax: '#3f3a48', grid: '#ece8f3' };
+
+const $ = (id) => document.getElementById(id);
+const fmt = (v, d = 1) => Number.isFinite(v) ? v.toFixed(d).replace('.', ',') : '—';
+const num = (s) => { const v = parseFloat(String(s).trim().replace(',', '.')); return Number.isFinite(v) ? v : NaN; };
+function esc(t) { return String(t).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
+function status(id, msg, kind) { const el = $(id); el.className = kind ? 'verdict ' + kind : ''; el.innerHTML = msg; }
+function validN(n) { return Number.isInteger(n) && n >= N_MIN && n <= N_MAX; }
+
+// ---------- modelul ----------
+function alias(f0, fs) { const k = Math.round(f0 / fs); return { k, fd: f0 - k * fs, fa: Math.abs(f0 - k * fs) }; }
+function rcAtt(f, fc) { return 10 * Math.log10(1 + Math.pow(f / fc, 2)); }
+function rcGainErr(f, fc) { return (1 - 1 / Math.sqrt(1 + Math.pow(f / fc, 2))) * 100; }
+function nextE12(cMin) { return C_LIST.find((c) => c >= cMin * (1 - 1e-9)); }
+function n90(a) { return a >= 1 ? 1 : Math.ceil(Math.log(0.1) / Math.log(1 - a)); }
+function payloadOf(N, fs, M, v) { return '{"id":"N' + String(N).padStart(2, '0') + '","seq":1000,"fs":' + fs + ',"M":' + M + ',"v":' + v.toFixed(1) + '}'; }
+
+function variant(N) {
+  const fs = [500, 1000, 200, 250][N % 4], f0 = 120 + 37 * N, A0 = alias(f0, fs);
+  const B = Math.round((0.1 + 0.05 * (N % 5)) * 100) / 100, A = [20, 26, 32][N % 3];
+  const fcMax = F_HUM / Math.sqrt(Math.pow(10, A / 10) - 1), cMin = 1e6 / (2 * Math.PI * R_RC * fcMax);
+  const ce = nextE12(cMin), fc = 1e6 / (2 * Math.PI * R_RC * ce);
+  const sigma = 4 + (N % 5) * 1.5, step = 40 + 6 * N, base = 1500 + 10 * N;
+  const M = [4, 8, 16][N % 3], alpha = [0.25, 0.1, 0.15][(N + 1) % 3];
+  const n9 = n90(alpha), Ttx = [1, 2, 5, 10][N % 4];
+  const pl = payloadOf(N, fs, M, base + step);
+  return {
+    N, fs, f0, fNy: fs / 2, fa: A0.fa, fd: A0.fd, fsMin: 2 * f0,
+    B, A, fcMax, cMin, ce, fc, att: rcAtt(F_HUM, fc), ge: rcGainErr(B, fc),
+    sigma, step, base, M, alpha, sMA: sigma / Math.sqrt(M), delMs: (M - 1) / 2 / fs * 1000,
+    sEMA: sigma * Math.sqrt(alpha / (2 - alpha)), n90: n9, t90: n9 / fs * 1000,
+    Ttx, spm: fs * Ttx, mph: 3600 / Ttx, pl, plLen: pl.length, bph: 3600 / Ttx * pl.length,
+    vcode: CODE + '-N' + String(N).padStart(2, '0') + '-v' + VERSION
+  };
+}
+let V = null;
+
+// zgomot determinist din N (mulberry32 + Box-Muller)
+function rng(seed) { let a = seed >>> 0; return () => { a = (a + 0x6D2B79F5) >>> 0; let t = a; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
+function makeRaw(N, hum) {
+  const r = rng(N * 7919 + 17), x = [], truth = [];
+  const humAmp = hum ? 60 / Math.sqrt(1 + Math.pow(F_HUM / V.fc, 2)) : 0;
+  for (let n = 0; n < NS; n++) {
+    const u1 = Math.max(r(), 1e-12), u2 = r();
+    const g = Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2);
+    const tv = V.base + (n >= STEP_AT ? V.step : 0);
+    truth.push(tv);
+    x.push(tv + V.sigma * g + humAmp * Math.sin(2 * Math.PI * F_HUM * n / V.fs));
+  }
+  return { x, truth, humAmp };
+}
+function movAvg(x, M) { const y = [], buf = new Array(M).fill(x[0]); let s = x[0] * M, i = 0; for (const v of x) { s += v - buf[i]; buf[i] = v; i = (i + 1) % M; y.push(s / M); } return y; }
+function ema(x, a) { const y = []; let p = x[0]; for (const v of x) { p += a * (v - p); y.push(p); } return y; }
+function stdOf(y, truth, i0, i1) { const d = []; for (let i = i0; i < i1; i++) d.push(y[i] - truth[i]); const m = d.reduce((s, v) => s + v, 0) / d.length; return Math.sqrt(d.reduce((s, v) => s + (v - m) * (v - m), 0) / (d.length - 1)); }
+
+// ---------- desen ----------
+function setupCanvas(c) {
+  const dpr = window.devicePixelRatio || 1, w = c.clientWidth, h = c.clientHeight;
+  c.width = Math.round(w * dpr); c.height = Math.round(h * dpr);
+  const g = c.getContext('2d'); g.setTransform(dpr, 0, 0, dpr, 0, 0); g.clearRect(0, 0, w, h); g.font = '12px system-ui,Arial,sans-serif'; return { g, w, h };
+}
+function frame(g, w, h, L, xlabel, ylabel) {
+  g.strokeStyle = COL.ax; g.lineWidth = 1; g.beginPath(); g.moveTo(L.l, L.t); g.lineTo(L.l, h - L.b); g.lineTo(w - L.r, h - L.b); g.stroke();
+  g.fillStyle = COL.ax; g.textAlign = 'right'; g.fillText(xlabel, w - L.r, h - 6); g.textAlign = 'left'; g.fillText(ylabel, L.l + 4, L.t - 6);
+}
+function line(g, pts, color, width, dash) { g.strokeStyle = color; g.lineWidth = width; g.setLineDash(dash || []); g.beginPath(); pts.forEach((p, i) => i ? g.lineTo(p[0], p[1]) : g.moveTo(p[0], p[1])); g.stroke(); g.setLineDash([]); }
+
+let playing = false, tAnim = 0, lastTs = null;
+function e1Params() { return { fs: Number($('fsSlider').value), f0: Number($('f0Slider').value) }; }
+function drawT() {
+  const c = $('cvT'); if (!c.offsetParent) return;
+  const { g, w, h } = setupCanvas(c), L = { l: 46, r: 12, t: 22, b: 30 };
+  const { fs, f0 } = e1Params(), al = alias(f0, fs), nS = 24, Tw = nS / fs, PW = w - L.l - L.r, PH = h - L.t - L.b;
+  const X = (t) => L.l + (t - tAnim) / Tw * PW, Y = (v) => L.t + PH / 2 - v * PH * 0.42;
+  g.strokeStyle = COL.grid; g.beginPath(); g.moveTo(L.l, Y(0)); g.lineTo(w - L.r, Y(0)); g.stroke();
+  frame(g, w, h, L, 't (fereastră ' + fmt(Tw * 1000, 1) + ' ms)', 'amplitudine');
+  const pts = [], K = Math.min(4000, Math.max(800, Math.ceil(f0 * Tw * 40)));
+  for (let i = 0; i <= K; i++) { const t = tAnim + Tw * i / K; pts.push([X(t), Y(Math.sin(2 * Math.PI * f0 * t))]); }
+  line(g, pts, COL.vl, 1.4);
+  const ap = []; for (let i = 0; i <= 600; i++) { const t = tAnim + Tw * i / 600; ap.push([X(t), Y(Math.sin(2 * Math.PI * al.fd * t))]); }
+  line(g, ap, COL.t, 2.4, [7, 4]);
+  const n0 = Math.ceil(tAnim * fs - 1e-9);
+  g.fillStyle = COL.v; for (let n = n0; n / fs <= tAnim + Tw + 1e-12; n++) { const t = n / fs; g.beginPath(); g.arc(X(t), Y(Math.sin(2 * Math.PI * f0 * t)), 4, 0, 2 * Math.PI); g.fill(); g.strokeStyle = COL.v; g.lineWidth = 1; g.beginPath(); g.moveTo(X(t), Y(0)); g.lineTo(X(t), Y(Math.sin(2 * Math.PI * f0 * t))); g.stroke(); }
+  g.fillStyle = COL.ax; g.textAlign = 'right'; g.fillText('f0 = ' + f0 + ' Hz · fs = ' + fs + ' Hz · fa = ' + fmt(al.fa, 0) + ' Hz', w - L.r, L.t - 6);
+}
+function drawS() {
+  const c = $('cvS'); if (!c.offsetParent) return;
+  const { g, w, h } = setupCanvas(c), L = { l: 46, r: 12, t: 22, b: 30 };
+  const { fs, f0 } = e1Params(), al = alias(f0, fs), fMax = Math.max(2.2 * fs, 1.15 * f0), PW = w - L.l - L.r;
+  const X = (f) => L.l + f / fMax * PW, base = h - L.b;
+  g.fillStyle = 'rgba(109,40,217,0.09)'; g.fillRect(X(0), L.t, X(fs / 2) - X(0), base - L.t);
+  frame(g, w, h, L, 'f (Hz)', '|X(f)|');
+  g.fillStyle = COL.ax; g.textAlign = 'center';
+  for (let k = 1; k * fs / 2 <= fMax; k++) { const f = k * fs / 2; g.strokeStyle = k % 2 ? COL.v : COL.ax; g.setLineDash(k % 2 ? [3, 3] : []); g.lineWidth = 1; g.beginPath(); g.moveTo(X(f), L.t); g.lineTo(X(f), base); g.stroke(); g.setLineDash([]); g.fillText(k % 2 ? (k === 1 ? 'fs/2' : k + '·fs/2') : (k / 2 === 1 ? 'fs' : (k / 2) + '·fs'), X(f), base + 14); }
+  const bar = (f, hh, col, wd) => { if (f < 0 || f > fMax) return; g.strokeStyle = col; g.lineWidth = wd; g.beginPath(); g.moveTo(X(f), base); g.lineTo(X(f), base - hh); g.stroke(); };
+  for (let k = -3; k <= 6; k++) { [k * fs + f0, k * fs - f0].forEach((f) => { if (Math.abs(f - f0) > 1e-9) bar(f, (base - L.t) * 0.5, COL.vl, 3); }); }
+  bar(f0, (base - L.t) * 0.85, COL.v, 4); bar(al.fa, (base - L.t) * 0.7, COL.t, 4);
+  g.fillStyle = COL.v; g.fillText('f0', X(f0), L.t + 10); g.fillStyle = COL.t; if (Math.abs(al.fa - f0) > 1e-9) g.fillText('fa', X(al.fa), base - (base - L.t) * 0.7 - 4);
+}
+function updE1() {
+  const { fs, f0 } = e1Params(), al = alias(f0, fs);
+  $('fsVal').textContent = fs; $('f0Val').textContent = f0;
+  $('mNy').textContent = fmt(fs / 2, 1) + ' Hz'; $('mFa').textContent = fmt(al.fa, 1) + ' Hz'; $('mFsMin').textContent = '> ' + (2 * f0) + ' Hz';
+  const ok = f0 < fs / 2; $('mVer').innerHTML = ok ? '<span class="tag ok">corect eșantionat</span>' : '<span class="tag bad">aliere</span>';
+  drawT(); drawS();
+}
+function loop(ts) {
+  if (lastTs !== null && playing) { tAnim += (ts - lastTs) / 1000 * Number($('speed').value); }
+  lastTs = ts; if (playing) drawT(); requestAnimationFrame(loop);
+}
+
+function drawB() {
+  const c = $('cvB'); if (!c.offsetParent) return;
+  const { g, w, h } = setupCanvas(c), L = { l: 52, r: 14, t: 22, b: 32 }, PW = w - L.l - L.r, PH = h - L.t - L.b;
+  const lf0 = -2, lf1 = 3, X = (f) => L.l + (Math.log10(f) - lf0) / (lf1 - lf0) * PW, Y = (db) => L.t + (-db) / 60 * PH;
+  g.strokeStyle = COL.grid; g.lineWidth = 1; g.fillStyle = COL.ax; g.textAlign = 'center';
+  for (let e = lf0; e <= lf1; e++) { g.beginPath(); g.moveTo(X(Math.pow(10, e)), L.t); g.lineTo(X(Math.pow(10, e)), h - L.b); g.stroke(); g.fillText(String(Math.pow(10, e)).replace('.', ','), X(Math.pow(10, e)), h - L.b + 14); }
+  g.textAlign = 'right'; for (let d = 0; d >= -60; d -= 10) { g.beginPath(); g.moveTo(L.l, Y(d)); g.lineTo(w - L.r, Y(d)); g.stroke(); g.fillText(d + ' dB', L.l - 4, Y(d) + 4); }
+  frame(g, w, h, L, 'f (Hz)', '|H| (dB)');
+  g.fillStyle = 'rgba(163,25,31,0.16)'; g.fillRect(X(F_HUM) - 6, Y(0), 12, Y(-V.A) - Y(0));
+  g.strokeStyle = COL.r; g.lineWidth = 2; g.beginPath(); g.moveTo(X(F_HUM) - 10, Y(-V.A)); g.lineTo(X(F_HUM) + 10, Y(-V.A)); g.stroke();
+  g.fillStyle = COL.r; g.textAlign = 'left'; g.fillText('cerință ≥ ' + V.A + ' dB la 50 Hz', X(F_HUM) + 12, Y(-V.A) + 4);
+  line(g, [[X(V.B), L.t], [X(V.B), h - L.b]], COL.t, 2, [5, 4]); g.fillStyle = COL.t; g.fillText('B = ' + fmt(V.B, 2) + ' Hz', X(V.B) + 4, L.t + 12);
+  const C = num($('selC').value);
+  if (Number.isFinite(C)) {
+    const fc = 1e6 / (2 * Math.PI * R_RC * C), pts = [];
+    for (let i = 0; i <= 400; i++) { const f = Math.pow(10, lf0 + (lf1 - lf0) * i / 400); pts.push([X(f), Y(Math.max(-60, -rcAtt(f, fc)))]); }
+    line(g, pts, COL.v, 2.6);
+    g.fillStyle = COL.v; g.beginPath(); g.arc(X(fc), Y(-3.01), 4, 0, 2 * Math.PI); g.fill(); g.fillText('fc', X(fc) + 6, Y(-3.01) - 6);
+  }
+}
+function evalRC(note) {
+  const C = num($('selC').value);
+  if (!Number.isFinite(C)) { status('rcVerdict', 'Alegeți o valoare pentru C.', 'warn'); return; }
+  const fc = 1e6 / (2 * Math.PI * R_RC * C), at = rcAtt(F_HUM, fc), ge = rcGainErr(V.B, fc);
+  $('mFc').textContent = fmt(fc, 3) + ' Hz'; $('mAp').textContent = fmt(at, 2) + ' dB'; $('mGe').textContent = fmt(ge, 3) + ' %'; $('mTau').textContent = fmt(R_RC * C * 1e-6 * 1000, 1) + ' ms';
+  let msg, kind;
+  if (at < V.A) { msg = 'Atenuarea ' + fmt(at, 2) + ' dB este sub cerința de ' + V.A + ' dB. Măriți C.'; kind = 'bad'; }
+  else if (Math.abs(C - V.ce) < 1e-9) { msg = 'Corect: cea mai mică valoare E12 care respectă cerința. Eroarea la B rămâne ' + fmt(ge, 3) + ' %.'; kind = 'ok'; }
+  else { msg = 'Cerința este respectată, dar există o valoare E12 mai mică. Un C mai mare înseamnă eroare mai mare la B și răspuns mai lent.'; kind = 'warn'; }
+  status('rcVerdict', msg, kind); drawB();
+  if (note) addCase('2 · Filtrul RC', 'C = ' + fmt(C, 3) + ' µF → fc = ' + fmt(fc, 3) + ' Hz, A(50 Hz) = ' + fmt(at, 2) + ' dB, ε(B) = ' + fmt(ge, 3) + ' %');
+}
+
+let RAW = null;
+function drawF() {
+  const c = $('cvF');
+  const M = Number($('mSlider').value), a = Number($('aSlider').value), hum = $('hum').checked;
+  $('mVal').textContent = M; $('aVal').textContent = fmt(a, 2);
+  RAW = makeRaw(V.N, hum);
+  const ma = movAvg(RAW.x, M), em = ema(RAW.x, a), i0 = 80, i1 = STEP_AT - 5;
+  const s0 = stdOf(RAW.x, RAW.truth, i0, i1), s1 = stdOf(ma, RAW.truth, i0, i1), s2 = stdOf(em, RAW.truth, i0, i1);
+  $('mS0').textContent = fmt(s0, 2) + ' LSB';
+  $('mS1').textContent = fmt(s1, 2) + ' / ' + fmt(V.sigma / Math.sqrt(M), 2);
+  $('mS2').textContent = fmt(s2, 2) + ' / ' + fmt(V.sigma * Math.sqrt(a / (2 - a)), 2);
+  $('mDl').textContent = fmt((M - 1) / 2 / V.fs * 1000, 1) + ' ms · ' + fmt(n90(a) / V.fs * 1000, 1) + ' ms';
+  const kHum = M * F_HUM / V.fs;
+  $('humHint').textContent = hum ? 'Brum rămas după filtrul RC al variantei: ' + fmt(RAW.humAmp, 2) + ' LSB. Media mobilă îl anulează complet când M·50/fs este întreg (aici M·50/fs = ' + fmt(kHum, 2) + '). Încercați M = ' + V.fs / F_HUM + '.' : 'Bifați brumul pentru a vedea ce lasă filtrul RC și cum îl anulează media mobilă.';
+  if (!c.offsetParent) return;
+  const { g, w, h } = setupCanvas(c), L = { l: 56, r: 12, t: 22, b: 30 }, PW = w - L.l - L.r, PH = h - L.t - L.b;
+  const n0 = 200, n1 = 480, lo = V.base - 4 * V.sigma - RAW.humAmp, hi = V.base + V.step + 4 * V.sigma + RAW.humAmp;
+  const X = (n) => L.l + (n - n0) / (n1 - n0) * PW, Y = (v) => L.t + (hi - v) / (hi - lo) * PH;
+  g.strokeStyle = COL.grid; g.fillStyle = COL.ax; g.textAlign = 'right';
+  for (let k = 0; k <= 4; k++) { const v = lo + (hi - lo) * k / 4; g.beginPath(); g.moveTo(L.l, Y(v)); g.lineTo(w - L.r, Y(v)); g.stroke(); g.fillText(Math.round(v), L.l - 4, Y(v) + 4); }
+  frame(g, w, h, L, 'eșantionul n (pas 1/fs = ' + fmt(1000 / V.fs, 1) + ' ms)', 'cod (LSB)');
+  const seg = (y) => { const p = []; for (let n = n0; n <= n1; n++) p.push([X(n), Y(y[n])]); return p; };
+  line(g, seg(RAW.x), COL.g, 1.2); line(g, seg(RAW.truth), COL.r, 1.4, [4, 4]); line(g, seg(ma), COL.v, 2.4); line(g, seg(em), COL.t, 2.4);
+}
+
+function sketch() {
+  const id = 'N' + String(V.N).padStart(2, '0'), per = Math.round(1e6 / V.fs);
+  return [
+    '// ' + V.vcode + ' – eșantionare cu timer, filtrare și trimitere decimată',
+    '// Arduino-ESP32 3.x · necompilat pe placă · adaptați rețeaua la nodul A din L03/L04',
+    '#include <WiFi.h>',
+    '#include <HTTPClient.h>',
+    '',
+    'const char* SSID = "CDM-NOD-A";        // rețeaua nodului A',
+    'const char* PASS = "parola-nodului-A";',
+    'const char* URL  = "http://192.168.4.1/data";',
+    'const int   PIN_SENZOR = 34;           // ADC1 (Wi-Fi pornit)',
+    'const uint32_t FS_HZ   = ' + V.fs + ';           // frecvența de eșantionare',
+    'const int   M          = ' + V.M + ';             // medie mobilă',
+    'const float ALFA       = ' + V.alpha + ';          // EMA',
+    'const uint32_t T_TX_MS = ' + V.Ttx * 1000 + ';         // un mesaj la T_tx',
+    '',
+    'hw_timer_t* timer = nullptr;',
+    'volatile bool tick = false;',
+    'void ARDUINO_ISR_ATTR onTimer() { tick = true; }',
+    '',
+    'uint16_t buf[M]; uint32_t suma = 0; int idx = 0;',
+    'float ema = 0; uint32_t seq = 0, tUltim = 0;',
+    '',
+    'void setup() {',
+    '  Serial.begin(115200);',
+    '  analogReadResolution(12);',
+    '  analogSetPinAttenuation(PIN_SENZOR, ADC_11db);',
+    '  uint16_t x0 = analogRead(PIN_SENZOR);',
+    '  for (int i = 0; i < M; i++) { buf[i] = x0; } suma = (uint32_t)x0 * M; ema = x0;',
+    '  WiFi.begin(SSID, PASS);',
+    '  while (WiFi.status() != WL_CONNECTED) { delay(250); }',
+    '  timer = timerBegin(1000000);             // 1 MHz',
+    '  timerAttachInterrupt(timer, &onTimer);',
+    '  timerAlarm(timer, ' + per + ', true, 0);         // ' + per + ' µs = 1/' + V.fs + ' Hz',
+    '}',
+    '',
+    'void loop() {',
+    '  if (tick) {',
+    '    tick = false;',
+    '    uint16_t x = analogRead(PIN_SENZOR);      // citirea în loop, nu în ISR',
+    '    suma += x - buf[idx]; buf[idx] = x; idx = (idx + 1) % M;',
+    '    ema += ALFA * (x - ema);',
+    '  }',
+    '  if (millis() - tUltim >= T_TX_MS && WiFi.status() == WL_CONNECTED) {',
+    '    tUltim = millis();',
+    '    float v = (float)suma / M;',
+    '    String js = "{\\"id\\":\\"' + id + '\\",\\"seq\\":" + String(++seq) + ",\\"fs\\":" + String(FS_HZ) +',
+    '                ",\\"M\\":" + String(M) + ",\\"v\\":" + String(v, 1) + "}";',
+    '    HTTPClient http; http.begin(URL); http.addHeader("Content-Type", "application/json");',
+    '    int cod = http.POST(js); http.end();       // atenție: în timpul POST se pot pierde eșantioane',
+    '    Serial.printf("seq %u -> HTTP %d  MA %.1f  EMA %.1f\\n", seq, cod, v, ema);',
+    '  }',
+    '}'
+  ].join('\n');
+}
+function updE4() {
+  $('e4fs').textContent = V.fs; $('e4T').textContent = V.Ttx;
+  $('mSpm').textContent = V.spm; $('mMph').textContent = V.mph; $('mPl').textContent = V.plLen + ' B'; $('mBph').textContent = V.bph + ' B';
+  $('payload').textContent = 'POST /data HTTP/1.1\nHost: 192.168.4.1\nContent-Type: application/json\n\n' + V.pl + '\n\n(exemplu cu seq = 1000 și valoarea după salt; lungime ' + V.plLen + ' octeți)';
+  $('sketch').textContent = sketch();
+}
+
+// ---------- fișa ----------
+let cases = [];
+function addCase(exp, res) { cases.push({ ora: new Date().toLocaleTimeString('ro-RO'), exp, res }); renderCases(); saveLocal(); }
+function renderCases() { $('caseRows').innerHTML = cases.map((c) => '<tr><td>' + esc(c.ora) + '</td><td>' + esc(c.exp) + '</td><td>' + esc(c.res) + '</td></tr>').join('') || '<tr><td colspan="3" class="muted">Niciun caz notat încă.</td></tr>'; }
+const SHEET_FIELDS = ['fName', 'fGroup', 'fNy', 'fFa', 'fFsMin', 'fFcMax', 'fCmin', 'fCe', 'fAtt', 'fGe', 'fSma', 'fDel', 'fSema', 'fN90', 'fT90', 'fSpm', 'fMph', 'fBph', 'fConc'];
+function sheetData() { const o = {}; SHEET_FIELDS.forEach((k) => { o[k] = $(k).value; }); return o; }
+function checkSheet() {
+  const d = sheetData(), rows = [], close = (a, b, tol) => Number.isFinite(a) && Math.abs(a - b) <= tol, rel = (a, b, r, mn) => close(a, b, Math.max(mn || 0, Math.abs(b) * r));
+  rows.push(['f Nyquist', close(num(d.fNy), V.fNy, 0.5), 'fs/2']);
+  rows.push(['f aparentă', close(num(d.fFa), V.fa, 0.5), '|f0 − k·fs|']);
+  rows.push(['fs minim', close(num(d.fFsMin), V.fsMin, 0.5), '2·f0 (strict mai mare)']);
+  rows.push(['fc maxim', rel(num(d.fFcMax), V.fcMax, 0.01), 'fp/√(10^(A/10) − 1)']);
+  rows.push(['C minim', rel(num(d.fCmin), V.cMin, 0.01), '1/(2πR·fc,max)']);
+  rows.push(['C din E12', rel(num(d.fCe), V.ce, 0.001), 'valoarea E12 imediat mai mare']);
+  rows.push(['Atenuare reală', close(num(d.fAtt), V.att, 0.1), '10·lg(1 + (50/fc)²)']);
+  rows.push(['Eroare la B', rel(num(d.fGe), V.ge, 0.03, 0.005), '[1 − 1/√(1 + (B/fc)²)]·100']);
+  rows.push(['σ medie mobilă', rel(num(d.fSma), V.sMA, 0.01, 0.01), 'σ/√M']);
+  rows.push(['Întârziere MA', close(num(d.fDel), V.delMs, 0.1), '(M − 1)/(2·fs)']);
+  rows.push(['σ EMA', rel(num(d.fSema), V.sEMA, 0.01, 0.01), 'σ·√(α/(2 − α))']);
+  rows.push(['n90', Number(d.fN90) === V.n90, '⌈ln 0,1 / ln(1 − α)⌉']);
+  rows.push(['t90', close(num(d.fT90), V.t90, 0.1), 'n90/fs']);
+  rows.push(['Eșantioane pe mesaj', Number(d.fSpm) === V.spm, 'fs·T_tx']);
+  rows.push(['Mesaje pe oră', Number(d.fMph) === V.mph, '3600/T_tx']);
+  rows.push(['Octeți pe oră', close(num(d.fBph), V.bph, 1), 'mesaje × ' + V.plLen + ' B']);
+  rows.push(['Concluzii', d.fConc.trim().split(/[.!?]+/).filter((x) => x.trim().length > 3).length >= 3, 'minimum trei propoziții']);
+  const good = rows.filter((r) => r[1]).length;
+  $('sheetStatus').className = 'verdict ' + (good === rows.length ? 'ok' : 'warn');
+  $('sheetStatus').innerHTML = '<b>' + good + ' din ' + rows.length + ' puncte verificate corect.</b> Verificarea este orientativă și nu este notă.<div class="scroll"><table style="margin-top:8px"><tbody>' +
+    rows.map((r) => '<tr><td>' + esc(r[0]) + '</td><td class="check ' + (r[1] ? 'ok">corect' : 'bad">de revăzut') + '</td><td>' + esc(r[2]) + '</td></tr>').join('') + '</tbody></table></div>';
+  saveLocal();
+}
+function stamp() { return new Date().toISOString().slice(0, 19).replace('T', ' '); }
+function download(name, content, type) { const blob = new Blob([content], { type }), u = URL.createObjectURL(blob), a = document.createElement('a'); a.href = u; a.download = name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(u), 1000); }
+function toCSV(rows) { return String.fromCharCode(0xFEFF) + rows.map((r) => r.map((c) => '"' + String(c).replace(/"/g, '""') + '"').join(';')).join('\r\n'); }
+function fileBase() { return CODE + '_N' + String(V.N).padStart(2, '0') + '_v' + VERSION; }
+function exportCSV() {
+  const d = sheetData(), base = [CODE, VERSION, V.N, stamp()];
+  const rows = [['CODE', 'VERSION', 'N', 'data_ora', 'marime', 'valoare', 'unitate']];
+  [['f_Nyquist', d.fNy, 'Hz'], ['f_aparenta', d.fFa, 'Hz'], ['fs_minim', d.fFsMin, 'Hz'], ['fc_maxim', d.fFcMax, 'Hz'], ['C_minim', d.fCmin, 'uF'], ['C_E12', d.fCe, 'uF'], ['atenuare_50Hz', d.fAtt, 'dB'], ['eroare_B', d.fGe, '%'], ['sigma_MA', d.fSma, 'LSB'], ['intarziere_MA', d.fDel, 'ms'], ['sigma_EMA', d.fSema, 'LSB'], ['n90', d.fN90, 'esantioane'], ['t90', d.fT90, 'ms'], ['esantioane_pe_mesaj', d.fSpm, '-'], ['mesaje_pe_ora', d.fMph, '-'], ['octeti_pe_ora', d.fBph, 'B']].forEach((r) => rows.push(base.concat(r)));
+  cases.forEach((c) => rows.push(base.concat(['caz ' + c.exp, c.res, c.ora])));
+  download(fileBase() + '.csv', toCSV(rows), 'text/csv;charset=utf-8');
+}
+function exportJSON() { download(fileBase() + '.json', JSON.stringify({ code: CODE, version: VERSION, N: V.N, variantCode: V.vcode, saved: stamp(), sheet: sheetData(), cases }, null, 2), 'application/json'); }
+function importJSON(file) {
+  const r = new FileReader();
+  r.onload = () => {
+    try {
+      const o = JSON.parse(r.result);
+      if (o.code !== CODE) throw new Error('fișierul nu este o fișă ' + CODE);
+      if (o.version !== VERSION) throw new Error('fișa este din versiunea ' + o.version + ', aplicația este ' + VERSION);
+      if (!validN(o.N) || typeof o.sheet !== 'object' || !o.sheet || !Array.isArray(o.cases)) throw new Error('structură incompletă');
+      $('nInput').value = o.N; applyVariant(o.N, false);
+      SHEET_FIELDS.forEach((k) => { if (typeof o.sheet[k] === 'string') $(k).value = o.sheet[k]; });
+      cases = o.cases.filter((c) => c && typeof c.exp === 'string' && typeof c.res === 'string').map((c) => ({ ora: String(c.ora || ''), exp: c.exp, res: c.res }));
+      renderCases(); saveLocal(); status('sheetStatus', 'Fișa N = ' + o.N + ' a fost importată.', 'ok');
+    } catch (e) { status('sheetStatus', 'Import respins: ' + esc(e.message) + '.', 'bad'); }
+  };
+  r.readAsText(file);
+}
+function storeKey() { return CODE + '-' + VERSION; }
+function saveLocal() { try { localStorage.setItem(storeKey(), JSON.stringify({ N: V.N, sheet: sheetData(), cases })); } catch (e) { status('sheetStatus', 'Salvarea locală nu este disponibilă; folosiți Export JSON.', 'warn'); } }
+function restoreLocal() { try { const o = JSON.parse(localStorage.getItem(storeKey()) || 'null'); return o && validN(o.N) ? o : null; } catch (e) { return null; } }
+
+function applyVariant(N, restoreSheet) {
+  if (!validN(N)) { status('nStatus', 'N trebuie să fie un număr întreg între ' + N_MIN + ' și ' + N_MAX + '.', 'bad'); return; }
+  V = variant(N);
+  $('vCode').textContent = V.vcode; $('fCode').textContent = V.vcode;
+  $('vData').innerHTML = 'f<sub>0</sub> = <b>' + V.f0 + ' Hz</b>, f<sub>s</sub> = <b>' + V.fs + ' Hz</b> · B = <b>' + fmt(V.B, 2) + ' Hz</b>, cerință <b>' + V.A + ' dB</b> la 50 Hz, R = 10 kΩ · σ = <b>' + fmt(V.sigma, 1) + ' LSB</b>, salt <b>' + V.step + ' LSB</b>, M = <b>' + V.M + '</b>, α = <b>' + fmt(V.alpha, 2) + '</b> · T<sub>tx</sub> = <b>' + V.Ttx + ' s</b>';
+  status('nStatus', 'Varianta N = ' + N + ' este activă.', '');
+  $('e1f0').textContent = V.f0; $('e1fs').textContent = V.fs; $('fsSlider').value = V.fs; $('f0Slider').value = V.f0; tAnim = 0;
+  $('e2B').textContent = fmt(V.B, 2); $('e2A').textContent = V.A; $('selC').value = ''; status('rcVerdict', '', ''); ['mFc', 'mAp', 'mGe', 'mTau'].forEach((k) => { $(k).textContent = '—'; });
+  $('e3sig').textContent = fmt(V.sigma, 1); $('e3step').textContent = V.step; $('mSlider').value = V.M; $('aSlider').value = V.alpha;
+  $('paramText').innerHTML = 'Experiment 1: f<sub>0</sub> = 120 + 37·N Hz; f<sub>s</sub> = 500, 1000, 200, 250 Hz pentru N mod 4 = 0, 1, 2, 3. Experiment 2: B = 0,10 + 0,05·(N mod 5) Hz; A = 20, 26, 32 dB pentru N mod 3 = 0, 1, 2; R = 10 kΩ, f<sub>p</sub> = 50 Hz. Experiment 3: σ = 4 + 1,5·(N mod 5) LSB; salt = 40 + 6·N LSB; M = 4, 8, 16 pentru N mod 3 = 0, 1, 2; α = 0,25, 0,10, 0,15 pentru (N + 1) mod 3 = 0, 1, 2; zgomotul este generat determinist din N. Experiment 4: T<sub>tx</sub> = 1, 2, 5, 10 s pentru N mod 4 = 0, 1, 2, 3.';
+  updE1(); evalNone(); drawF(); updE4();
+  if (restoreSheet) {
+    const o = restoreLocal();
+    if (o && o.N === N) { SHEET_FIELDS.forEach((k) => { if (o.sheet && typeof o.sheet[k] === 'string') $(k).value = o.sheet[k]; }); cases = Array.isArray(o.cases) ? o.cases : []; }
+    else { SHEET_FIELDS.forEach((k) => { $(k).value = ''; }); cases = []; }
+    renderCases();
+  }
+}
+function evalNone() { drawB(); }
+function redrawAll() { updE1(); drawB(); drawF(); }
+
+document.querySelectorAll('[role=tab]').forEach((b) => b.addEventListener('click', () => {
+  document.querySelectorAll('[role=tab]').forEach((x) => x.setAttribute('aria-selected', x === b ? 'true' : 'false'));
+  document.querySelectorAll('.tab').forEach((t) => t.classList.toggle('active', t.id === 'tab-' + b.dataset.tab));
+  redrawAll();
+}));
+document.querySelectorAll('.expbtn').forEach((b) => b.addEventListener('click', () => {
+  document.querySelectorAll('.expbtn').forEach((x) => x.setAttribute('aria-pressed', x === b ? 'true' : 'false'));
+  document.querySelectorAll('.exp').forEach((e) => e.classList.toggle('active', e.id === 'exp' + b.dataset.exp));
+  redrawAll();
+}));
+$('selC').innerHTML = '<option value="">alegeți</option>' + C_LIST.map((c) => '<option value="' + c + '">' + fmt(c, c < 1 ? 2 : 1) + ' µF</option>').join('');
+$('btnApply').addEventListener('click', () => applyVariant(Number($('nInput').value), true));
+$('btnExample').addEventListener('click', () => { $('nInput').value = N_EXEMPLU; applyVariant(N_EXEMPLU, true); });
+$('fsSlider').addEventListener('input', updE1); $('f0Slider').addEventListener('input', updE1);
+$('btnFsVar').addEventListener('click', () => { $('fsSlider').value = V.fs; $('f0Slider').value = V.f0; updE1(); });
+$('btnPlay').addEventListener('click', () => { playing = true; }); $('btnPause').addEventListener('click', () => { playing = false; });
+$('btnReset').addEventListener('click', () => { tAnim = 0; drawT(); });
+$('btnNoteA').addEventListener('click', () => { const { fs, f0 } = e1Params(), al = alias(f0, fs); addCase('1 · Alierea', 'f0 = ' + f0 + ' Hz, fs = ' + fs + ' Hz → fa = ' + fmt(al.fa, 1) + ' Hz' + (f0 < fs / 2 ? ' (corect)' : ' (aliere)')); });
+$('selC').addEventListener('change', () => evalRC(false));
+$('btnCheckRC').addEventListener('click', () => evalRC(false)); $('btnNoteRC').addEventListener('click', () => evalRC(true));
+$('mSlider').addEventListener('input', drawF); $('aSlider').addEventListener('input', drawF); $('hum').addEventListener('change', drawF);
+$('btnMAvar').addEventListener('click', () => { $('mSlider').value = V.M; $('aSlider').value = V.alpha; drawF(); });
+$('btnNoteF').addEventListener('click', () => { drawF(); addCase('3 · Filtrul digital', 'M = ' + $('mSlider').value + ', α = ' + fmt(Number($('aSlider').value), 2) + (($('hum').checked) ? ', cu brum' : '') + ' → σ MA ' + $('mS1').textContent + ', σ EMA ' + $('mS2').textContent + ', ' + $('mDl').textContent); });
+$('btnCopy').addEventListener('click', () => { try { navigator.clipboard.writeText(sketch()).then(() => { $('copyStatus').textContent = 'Codul a fost copiat.'; }, () => { $('copyStatus').textContent = 'Copierea nu este permisă aici; folosiți „Descarcă .ino”.'; }); } catch (e) { $('copyStatus').textContent = 'Copierea nu este permisă aici; folosiți „Descarcă .ino”.'; } });
+$('btnIno').addEventListener('click', () => download(CODE.replace('-', '_') + '_N' + String(V.N).padStart(2, '0') + '.ino', sketch(), 'text/plain;charset=utf-8'));
+$('btnCheckSheet').addEventListener('click', checkSheet);
+$('btnExportJSON').addEventListener('click', exportJSON); $('btnExportCSV').addEventListener('click', exportCSV);
+$('fileImport').addEventListener('change', (e) => { if (e.target.files[0]) importJSON(e.target.files[0]); e.target.value = ''; });
+SHEET_FIELDS.forEach((k) => $(k).addEventListener('change', saveLocal));
+window.addEventListener('resize', redrawAll);
+$('verLabel').textContent = VERSION; $('verFoot').textContent = VERSION;
+(function start() {
+  const o = restoreLocal(); const N = o ? o.N : N_EXEMPLU; $('nInput').value = N; applyVariant(N, true);
+  playing = !(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+  requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>
