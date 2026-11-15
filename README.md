@@ -10,5 +10,6 @@ Virtual laboratory — CDM: https://argatuflorin.github.io/CDM/
 | L03 | Comunicația între două noduri ESP32 (HTTP) | [L03/CDM_L03_Comunicatie_HTTP_v1.0.html](L03/CDM_L03_Comunicatie_HTTP_v1.0.html) |
 | L04 | Achiziția DHT și transmiterea HTTP între două ESP32 | [L04/CDM_L04_DHT_HTTP_v1.2.html](L04/CDM_L04_DHT_HTTP_v1.2.html) |
 | L05 | ADC și DAC pe ESP32 | [L05/CDM_L05_ADC_DAC_ESP32_v1.0.html](L05/CDM_L05_ADC_DAC_ESP32_v1.0.html) |
+| L06 | Eșantionare și filtrare pe ESP32 | [L06/CDM_L06_Esantionare_Filtrare_ESP32_v1.0.html](L06/CDM_L06_Esantionare_Filtrare_ESP32_v1.0.html) |
 
 Îndrumarele se găsesc în Moodle, cu același cod (L0x). Adresa veche `CDM_Comunicatie_ESP32.html` redirecționează către L03.
