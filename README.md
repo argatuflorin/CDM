@@ -13,3 +13,12 @@ Virtual laboratory — CDM: https://argatuflorin.github.io/CDM/
 | L06 | Eșantionare și filtrare pe ESP32 | [L06/CDM_L06_Esantionare_Filtrare_ESP32_v1.0.html](L06/CDM_L06_Esantionare_Filtrare_ESP32_v1.0.html) |
 
 Îndrumarele se găsesc în Moodle, cu același cod (L0x). Adresa veche `CDM_Comunicatie_ESP32.html` redirecționează către L03.
+
+<!-- licenta-citare -->
+## Licență și citare
+
+© 2026 Florin-Ciprian Argatu ([ORCID 0000-0003-0606-6273](https://orcid.org/0000-0003-0606-6273)), DMAECS – Universitatea Națională de Știință și Tehnologie POLITEHNICA București, Facultatea de Inginerie Electrică.
+
+Materialul este publicat sub licența [CC BY-NC-ND 4.0](https://creativecommons.org/licenses/by-nc-nd/4.0/): poate fi distribuit cu citarea autorilor, doar în scop necomercial și fără versiuni modificate. Detalii în [`LICENSE`](LICENSE).
+
+**Citare:** folosiți butonul *Cite this repository* (dreapta sus, generat din [`CITATION.cff`](CITATION.cff)). DOI-ul permanent (Zenodo) se adaugă la primul release.

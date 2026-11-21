@@ -72,7 +72,7 @@
     @media (max-width:700px) { .grid2,.grid3,.fields { grid-template-columns:1fr; } .variant { grid-template-columns:1fr 1fr; } }
     @media print { .noprint,.tabs,.variant .buttons { display:none !important; } .tab { display:none !important; } #tab-fisa { display:block !important; } main { max-width:none; padding:0; } body { font-size:12pt; } }
   </style>
-</head>
+<meta name="author" content="Florin-Ciprian Argatu"><meta name="copyright" content="© 2026 Florin-Ciprian Argatu – CC BY-NC-ND 4.0"><link rel="license" href="https://creativecommons.org/licenses/by-nc-nd/4.0/"></head>
 <body>
 <main>
   <header>
@@ -561,5 +561,7 @@ SHEET_FIELDS.forEach((k) => $(k).addEventListener('change', saveLocal));
 $('verLabel').textContent = VERSION; $('verFoot').textContent = VERSION;
 (function start() { const o = restoreLocal(); const N = o ? o.N : N_EXEMPLU; $('nInput').value = N; applyVariant(N, true); })();
 </script>
+
+<div id="licenta-cc-by-nc-nd" style="clear:both;margin:24px auto 12px;padding:8px 12px;max-width:1100px;font:12px/1.5 system-ui,Arial,sans-serif;color:#666;text-align:center;opacity:.9">© 2026 Florin-Ciprian Argatu · UPB · FIE · DMAECS · Licență <a href="https://creativecommons.org/licenses/by-nc-nd/4.0/" rel="license" style="color:inherit">CC BY-NC-ND 4.0</a> · Utilizare necomercială, fără versiuni modificate, cu citarea autorului.</div>
 </body>
 </html>
