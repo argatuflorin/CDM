@@ -11,6 +11,8 @@ Virtual laboratory — CDM: https://argatuflorin.github.io/CDM/
 | L04 | Achiziția DHT și transmiterea HTTP între două ESP32 | [L04/CDM_L04_DHT_HTTP_v1.2.html](L04/CDM_L04_DHT_HTTP_v1.2.html) |
 | L05 | ADC și DAC pe ESP32 | [L05/CDM_L05_ADC_DAC_ESP32_v1.0.html](L05/CDM_L05_ADC_DAC_ESP32_v1.0.html) |
 | L06 | Eșantionare și filtrare pe ESP32 | [L06/CDM_L06_Esantionare_Filtrare_ESP32_v1.0.html](L06/CDM_L06_Esantionare_Filtrare_ESP32_v1.0.html) |
+| L07 | Multiplexarea analogică pe ESP32 (CD74HC4067) | [L07/CDM_L07_Multiplexare_Analogica_ESP32_v1.0.html](L07/CDM_L07_Multiplexare_Analogica_ESP32_v1.0.html) |
+| L08 | ADC extern pe magistrala I2C: ADS1115 | [L08/CDM_L08_ADC_Extern_I2C_ADS1115_v1.0.html](L08/CDM_L08_ADC_Extern_I2C_ADS1115_v1.0.html) |
 
 Îndrumarele se găsesc în Moodle, cu același cod (L0x). Adresa veche `CDM_Comunicatie_ESP32.html` redirecționează către L03.
 

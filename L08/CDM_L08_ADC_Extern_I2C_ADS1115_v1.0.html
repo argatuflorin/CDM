@@ -1,0 +1,693 @@
+<!doctype html>
+<html lang="ro">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>CDM · L08 · ADC extern pe magistrala I2C: ADS1115</title>
+  <style>
+    :root { --v:#6d28d9; --v-tint:#f5f3ff; --v-line:#d8cbed; --muted:#3f3a48; --ok:#1f7a3d; --ok-bg:#e6f4ea; --warn:#8a5a00; --warn-bg:#fff4d6; --bad:#a3191f; --bad-bg:#fde8e8; --teal:#087f8c; }
+    * { box-sizing:border-box; }
+    body { margin:0; background:#fff; color:#000; font:16px/1.6 system-ui,"Segoe UI",Arial,sans-serif; }
+    main { max-width:1180px; margin:auto; padding:26px 22px 60px; }
+    h1 { font-size:clamp(28px,4vw,42px); line-height:1.15; margin:8px 0 6px; }
+    h2 { font-size:24px; margin:0 0 14px; }
+    h3 { font-size:18px; margin:18px 0 8px; }
+    p { margin:8px 0 12px; }
+    header { border-bottom:3px solid var(--v); padding-bottom:16px; }
+    .kicker { font-size:14px; font-weight:700; }
+    .lead { font-size:18px; max-width:820px; }
+    .author { font-size:14px; color:var(--muted); }
+    .variant { display:grid; grid-template-columns:auto auto auto 1fr; gap:12px; align-items:end; margin:18px 0; padding:16px; background:var(--v-tint); border:1px solid var(--v-line); border-radius:12px; }
+    .variant input { width:110px; }
+    .vcode { font-weight:700; }
+    .vdata { grid-column:1/-1; font-size:15px; }
+    label { display:block; font-size:14px; font-weight:650; }
+    input, select, textarea { display:block; width:100%; margin-top:4px; padding:9px; border:1px solid #9a93a6; border-radius:6px; font:inherit; background:#fff; color:#000; }
+    textarea { min-height:70px; }
+    button { font:600 14px system-ui,Arial,sans-serif; padding:10px 14px; background:var(--v-tint); border:1px solid var(--v); border-radius:7px; cursor:pointer; color:#000; }
+    button:hover { background:#ebe3ff; }
+    button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible { outline:3px solid var(--teal); outline-offset:2px; }
+    button[aria-pressed="true"], button[aria-selected="true"] { background:var(--v); color:#fff; }
+    .buttons { display:flex; flex-wrap:wrap; gap:8px; margin:12px 0; }
+    .tabs { display:flex; flex-wrap:wrap; gap:8px; margin:18px 0 6px; }
+    .tabs button { border-radius:7px 7px 0 0; }
+    .tab { display:none; padding:18px 0; }
+    .tab.active { display:block; }
+    .grid2 { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:22px; }
+    .grid3 { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:14px; }
+    .panel { border:1px solid var(--v-line); border-radius:12px; padding:16px; background:#fff; min-width:0; }
+    .note { background:var(--v-tint); border-left:4px solid var(--v); padding:12px 14px; border-radius:0 8px 8px 0; }
+    .muted { color:var(--muted); font-size:14px; }
+    .exp { display:none; }
+    .exp.active { display:block; }
+    .verdict { padding:10px 12px; border-radius:8px; margin:8px 0; font-size:15px; }
+    .verdict.ok { background:var(--ok-bg); color:var(--ok); }
+    .verdict.warn { background:var(--warn-bg); color:var(--warn); }
+    .verdict.bad { background:var(--bad-bg); color:var(--bad); }
+    .fields { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:12px; }
+    .mono, pre, code { font-family:ui-monospace,Consolas,monospace; }
+    pre { background:#f7f6f9; border:1px solid var(--v-line); border-radius:8px; padding:12px; overflow:auto; font-size:13px; line-height:1.5; white-space:pre; }
+    .addr { display:flex; gap:8px; align-items:center; background:#f1f0f4; border:1px solid #c9c3d3; border-radius:22px; padding:6px 8px 6px 14px; }
+    .addr input { border:0; background:transparent; margin:0; padding:6px; }
+    .addr input:focus-visible { outline:2px solid var(--teal); }
+    .screen { border:1px solid var(--v-line); border-radius:8px; min-height:150px; padding:14px; background:#fff; margin-top:10px; }
+    .http { font-size:13px; }
+    table { border-collapse:collapse; width:100%; font-size:14px; }
+    th, td { border:1px solid #cfc7dc; padding:7px 8px; text-align:left; vertical-align:top; }
+    th { background:#f1ebfa; }
+    .scroll { overflow-x:auto; }
+    .check { font-weight:700; }
+    .check.ok { color:var(--ok); } .check.bad { color:var(--bad); }
+    .clients { display:flex; flex-wrap:wrap; gap:8px; margin:10px 0; }
+    .client { border:1px solid var(--v-line); border-radius:8px; padding:8px 10px; font-size:14px; background:var(--v-tint); }
+    .client.refused { background:var(--bad-bg); color:var(--bad); border-color:#e7b3b5; }
+    .led { display:inline-block; width:16px; height:16px; border-radius:50%; background:#9ca3af; vertical-align:-3px; margin-right:6px; border:1px solid #555; }
+    .led.on { background:#f59e0b; box-shadow:0 0 10px #f59e0b; }
+    details { border:1px solid var(--v-line); border-radius:8px; padding:10px 14px; margin:10px 0; }
+    summary { cursor:pointer; font-weight:700; }
+    .formula { font:18px Cambria,Georgia,serif; padding:8px; background:#f7f6f9; border-radius:6px; overflow-x:auto; }
+    svg text { font-family:system-ui,Arial,sans-serif; }
+    footer { margin-top:30px; padding-top:14px; border-top:1px solid var(--v-line); font-size:13px; color:var(--muted); }
+    footer a { color:#000; }
+    @media (max-width:700px) { .grid2,.grid3,.fields { grid-template-columns:1fr; } .variant { grid-template-columns:1fr 1fr; } }
+    @media print { .noprint,.tabs,.variant .buttons { display:none !important; } .tab { display:none !important; } #tab-fisa { display:block !important; } main { max-width:none; padding:0; } body { font-size:12pt; } }
+    canvas { display:block; width:100%; height:260px; border:1px solid var(--v-line); border-radius:8px; background:#fff; }
+    input[type=range] { padding:0; }
+    .metrics { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:10px; margin:12px 0; }
+    .metric { border:1px solid var(--v-line); border-radius:8px; padding:10px; } .metric small { display:block; font-size:13px; color:var(--muted); } .metric b { font-size:20px; }
+    @media (max-width:700px) { .metrics { grid-template-columns:repeat(2,minmax(0,1fr)); } }
+    .hero { display:grid; grid-template-columns:minmax(0,1.6fr) minmax(0,1fr); gap:22px; align-items:center; }
+    .chain svg { width:100%; height:auto; display:block; }
+    .chain .blk { fill:#fff; stroke:var(--v); stroke-width:2; }
+    .chain .blk.hot { fill:var(--v-tint); }
+    .chain text { font-size:13px; }
+    .chain .t1 { font-weight:700; font-size:14px; }
+    .flow { stroke:var(--v); stroke-width:2.5; fill:none; stroke-dasharray:6 6; animation:flow 1.2s linear infinite; }
+    @keyframes flow { to { stroke-dashoffset:-24; } }
+    @media (prefers-reduced-motion: reduce) { .flow { animation:none; } }
+    .legend { display:flex; flex-wrap:wrap; gap:14px; font-size:14px; margin:6px 0; }
+    .legend i { display:inline-block; width:22px; height:4px; vertical-align:middle; margin-right:6px; border-radius:2px; }
+    .ctl { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:12px; align-items:end; }
+    .bigval { font-size:28px; font-weight:800; color:var(--v); }
+    .tag { display:inline-block; padding:2px 8px; border-radius:10px; font-size:13px; font-weight:700; }
+    .tag.ok { background:var(--ok-bg); color:var(--ok); } .tag.bad { background:var(--bad-bg); color:var(--bad); }
+    canvas.tall { height:300px; } canvas.short { height:200px; }
+    @media (max-width:700px) { .hero,.ctl { grid-template-columns:1fr; } }
+  </style>
+<body>
+<main>
+  <header>
+    <div class="kicker">CDM · Concepția asistată de calculator a sistemelor distribuite de măsurare · Anul IV</div>
+    <h1>ADC extern pe magistrala I2C: ADS1115</h1>
+    <p class="lead">Patru intrări analogice de 16 biți pe două fire: găsiți adresa modulului pe magistrală, construiți octet cu octet cadrul care îl configurează, alegeți domeniul amplificatorului programabil și calculați cât de des puteți citi fiecare intrare. Aplicație însoțitoare pentru Cap. V – Magistrale și protocoale în sistemele distribuite de măsurare.</p>
+    <div class="author">Conf.dr.ing. Argatu Florin Ciprian · laboratorul L08 · versiunea <span id="verLabel"></span></div>
+  </header>
+
+  <section class="variant" aria-label="Varianta individuală">
+    <div><label for="nInput">N – numărul vostru (1…30)</label><input id="nInput" type="number" min="1" max="30" step="1" value="7"></div>
+    <div class="buttons noprint"><button id="btnApply">Aplică varianta N</button><button id="btnExample">Exemplul N = 7</button></div>
+    <div><div class="muted">Codul variantei</div><div class="vcode" id="vCode">—</div></div>
+    <p id="nStatus" role="status" class="muted"></p>
+    <div class="vdata" id="vData"></div>
+  </section>
+
+  <div class="tabs noprint" role="tablist">
+    <button role="tab" data-tab="start" aria-selected="true">1 · Începe aici</button>
+    <button role="tab" data-tab="banc" aria-selected="false">2 · Banc virtual</button>
+    <button role="tab" data-tab="fisa" aria-selected="false">3 · Fișa studentului</button>
+    <button role="tab" data-tab="breviar" aria-selected="false">4 · Breviar</button>
+  </div>
+
+  <section class="tab active" id="tab-start" role="tabpanel">
+    <h2>Un ADC de precizie pe magistrala I2C</h2>
+    <div class="hero">
+      <div class="chain panel">
+        <svg viewBox="0 0 660 240" role="img" aria-label="Senzori pe AIN0–AIN3, ADS1115, magistrala I2C cu pull-up, ESP32, nodul A">
+          <defs><marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#6d28d9"/></marker></defs>
+          <g font-size="11" fill="#3f3a48"><text x="8" y="44">senzor → AIN0</text><text x="8" y="68">senzor → AIN1</text><text x="8" y="92">senzor → AIN2</text><text x="8" y="116">senzor → AIN3</text></g>
+          <path d="M92,40 H130 M92,64 H130 M92,88 H130 M92,112 H130" stroke="#c4b5fd" stroke-width="2"/>
+          <rect class="blk hot" x="130" y="20" width="150" height="116" rx="10"/><text class="t1" x="205" y="48" text-anchor="middle">ADS1115</text><text x="205" y="68" text-anchor="middle">MUX · PGA · ΔΣ 16 biți</text><text x="205" y="86" text-anchor="middle">ADDR → adresa</text><text x="205" y="106" text-anchor="middle">Exp. 1 · 3</text>
+          <path d="M280,62 H470 M280,92 H470" stroke="#6d28d9" stroke-width="3"/><text x="300" y="56" font-size="11">SDA</text><text x="300" y="86" font-size="11">SCL</text>
+          <path d="M360,62 V30 M400,92 V30" stroke="#3f3a48" stroke-width="1.5"/><rect x="354" y="24" width="12" height="20" fill="#fff" stroke="#3f3a48"/><rect x="394" y="24" width="12" height="20" fill="#fff" stroke="#3f3a48"/><text x="380" y="16" text-anchor="middle" font-size="11">pull-up la 3,3 V</text>
+          <path class="flow" d="M300,106 H460" marker-end="url(#ar)"/><text x="380" y="124" text-anchor="middle" font-size="11">cadrele I2C · Exp. 2</text>
+          <rect class="blk" x="470" y="40" width="120" height="76" rx="10"/><text class="t1" x="530" y="66" text-anchor="middle">ESP32</text><text x="530" y="86" text-anchor="middle">controler I2C</text><text x="530" y="104" text-anchor="middle">Exp. 4</text>
+          <path class="flow" d="M530,116 V170" marker-end="url(#ar)"/>
+          <rect class="blk" x="470" y="174" width="120" height="40" rx="10"/><text x="530" y="199" text-anchor="middle">Nod A (L03/L04)</text>
+          <text x="230" y="200" text-anchor="middle" font-size="13" fill="#3f3a48">Fiecare bloc are o decizie de proiectare;</text><text x="230" y="218" text-anchor="middle" font-size="13" fill="#3f3a48">în fișă o justificați cu un calcul.</text>
+        </svg>
+      </div>
+      <div>
+        <p>În L05 ați lucrat cu ADC-ul intern al ESP32 (12 biți), iar în L07 ați multiplexat 16 senzori pe un singur pin. Când contează precizia, conversia se mută într-un circuit dedicat, iar ESP32 doar îl comandă și citește rezultatul pe o <b>magistrală serială</b>.</p>
+        <div class="note">Legătura cu cursul: Cap. V din fișa CDM (magistrale și protocoale) și temele de proiect 4 (alegerea convertoarelor A/D) și 7 (magistralele de comunicație). Sursa primară: fișa tehnică TI ADS111x (SBAS444E).</div>
+      </div>
+    </div>
+    <div class="grid3" style="margin-top:18px">
+      <div class="panel"><h3>Parcurs (120 min)</h3><p>20 min – adresarea pe magistrală (Experiment 1)<br>30 min – cadrul I2C și registrul Config (Experiment 2)<br>25 min – PGA și codul (Experiment 3)<br>25 min – rata de citire și firmware-ul (Experiment 4)<br>20 min – fișa și concluziile</p></div>
+      <div class="panel"><h3>Ce predați</h3><p>Fișa completată (PDF din „Tipărește / Salvează PDF”), fișierul JSON al fișei și trei capturi: C1 – cadrul I2C de scriere a registrului Config, C2 – caracteristica de transfer pentru FSR ales, C3 – bugetul de timp al citirii celor 4 intrări.</p></div>
+      <div class="panel"><h3>Ipotezele modelului</h3><p>ADS1115 alimentat la 3,3 V, intrări simple față de GND. Durata I2C fără START/STOP și pauze. Conversia durează 1/DR (fișa tehnică). Firmware-ul generat folosește doar biblioteca Wire și este necompilat pe placă.</p></div>
+    </div>
+    <div class="note"><b>Aceasta este o simulare.</b> Aplicația nu se conectează la placă și nu transmite note. Rezultatele sunt calcule de proiectare, nu măsurări.</div>
+  </section>
+
+  <section class="tab" id="tab-banc" role="tabpanel">
+    <div class="buttons noprint" role="group" aria-label="Experimente">
+      <button class="expbtn" data-exp="1" aria-pressed="true">Experiment 1 · Adresarea</button>
+      <button class="expbtn" data-exp="2" aria-pressed="false">Experiment 2 · Cadrul I2C</button>
+      <button class="expbtn" data-exp="3" aria-pressed="false">Experiment 3 · PGA și codul</button>
+      <button class="expbtn" data-exp="4" aria-pressed="false">Experiment 4 · Rata de citire</button>
+    </div>
+
+    <div class="exp active" id="exp1">
+      <h2>Experiment 1 · Adresa modulului pe magistrală</h2>
+      <p>Pe magistrală pot sta până la patru ADS1115; fiecare își ia adresa după firul la care este legat pinul ADDR. Modulul vostru are ADDR legat la <b id="e1addr">—</b>. Ce adresă găsește scannerul și ce octeți pleacă pe fir pentru scriere și pentru citire?</p>
+      <div class="ctl">
+        <label>Câte ADS1115 pe magistrală<select id="selCnt"><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option></select></label>
+        <label>ADDR al modulului urmărit<select id="selAd1"><option value="0">GND</option><option value="1">VDD</option><option value="2">SDA</option><option value="3">SCL</option></select></label>
+        <div class="buttons noprint" style="margin:0"><button id="btnAdVar">Varianta</button><button id="btnNoteA">Notează cazul în fișă</button></div>
+      </div>
+      <div class="metrics">
+        <div class="metric"><small>Adresa pe 7 biți</small><b id="mA7">—</b></div>
+        <div class="metric"><small>Octet scriere (R/W̄ = 0)</small><b id="mAW">—</b></div>
+        <div class="metric"><small>Octet citire (R/W̄ = 1)</small><b id="mAR">—</b></div>
+        <div class="metric"><small>Intrări simple disponibile</small><b id="mAin">—</b></div>
+      </div>
+      <canvas id="cvBus" class="tall" aria-label="Magistrala I2C cu ESP32 și până la patru ADS1115"></canvas>
+      <pre id="scanOut" class="http"></pre>
+    </div>
+
+    <div class="exp" id="exp2">
+      <h2>Experiment 2 · Cadrul I2C care configurează ADS1115</h2>
+      <p>Pinul ADDR al modulului vostru este legat la <b id="e2addr">—</b>. Citiți intrarea <b id="e2ain">—</b> față de GND, cu domeniul din Experiment 3 și rata <b id="e2dr">—</b>, în mod single-shot. Construiți registrul Config și urmăriți octeții pe fire.</p>
+      <div class="fields">
+        <label>MUX[2:0] (intrarea)<select id="selMux"></select></label>
+        <label>PGA[2:0] (domeniul)<select id="selPga"></select></label>
+        <label>DR[2:0] (rata)<select id="selDr"></select></label>
+        <label>MODE<select id="selMode"><option value="1">1 – single-shot</option><option value="0">0 – continuu</option></select></label>
+        <label>ADDR legat la<select id="selAddr"><option value="0">GND</option><option value="1">VDD</option><option value="2">SDA</option><option value="3">SCL</option></select></label>
+        <div class="buttons noprint" style="margin:0;align-self:end"><button id="btnCfgVar">Valorile variantei</button><button id="btnNoteI">Notează cazul în fișă</button></div>
+      </div>
+      <div class="metrics">
+        <div class="metric"><small>Adresa 7 biți</small><b id="mAddr">—</b></div>
+        <div class="metric"><small>Octetul de adresă (W)</small><b id="mAB">—</b></div>
+        <div class="metric"><small>Registrul Config</small><b id="mCfg">—</b></div>
+        <div class="metric"><small>Verdict</small><b id="mCfgV">—</b></div>
+      </div>
+      <div class="buttons noprint"><button id="btnPlay2">▶ Play</button><button id="btnPause2">❚❚ Pauză</button><button id="btnReset2">↺ Reset</button><label style="display:inline-block;min-width:200px">Viteza<select id="speed2"><option value="4">lent</option><option value="10" selected>normal</option><option value="25">rapid</option></select></label></div>
+      <canvas id="cvI2C" class="tall" aria-label="Diagrama de timp SCL și SDA pentru scrierea registrului Config"></canvas>
+      <div class="legend"><span><i style="background:#6d28d9"></i>controlerul (ESP32) trage SDA</span><span><i style="background:#087f8c"></i>ACK de la ADS1115</span><span><i style="background:#a3191f;height:2px"></i>START / STOP</span></div>
+      <pre id="cfgBits" class="http"></pre>
+    </div>
+
+    <div class="exp" id="exp3">
+      <h2>Experiment 3 · Amplificatorul programabil (PGA) și codul de ieșire</h2>
+      <p>Senzorul dă V<sub>in</sub> = <b id="e3vin">—</b> V. Alegeți cel mai mic domeniu FSR care cuprinde tensiunea (rezoluție maximă) fără să depășiți V<sub>DD</sub> = 3,3 V la intrare.</p>
+      <div class="fields">
+        <label>FSR ales<select id="selFsr"></select></label>
+        <label for="vinSlider">V<sub>in</sub> explorare: <span id="vinVal">—</span> V<input id="vinSlider" type="range" min="0" max="3.3" step="0.005"></label>
+        <div class="buttons noprint" style="margin:0;align-self:end"><button id="btnVinVar">V<sub>in</sub> al variantei</button><button id="btnNoteP">Notează cazul în fișă</button></div>
+      </div>
+      <div class="metrics">
+        <div class="metric"><small>LSB = FSR/2<sup>15</sup></small><b id="mLsb">—</b></div>
+        <div class="metric"><small>Codul (zecimal)</small><b id="mCode">—</b></div>
+        <div class="metric"><small>Codul (hex, complement față de 2)</small><b id="mHex">—</b></div>
+        <div class="metric"><small>Câștig de rezoluție față de 12 biți</small><b id="mGain">—</b></div>
+      </div>
+      <div id="pgaVerdict" role="status"></div>
+      <canvas id="cvPga" class="tall" aria-label="Caracteristica de transfer a ADS1115 pentru domeniul ales"></canvas>
+      <p class="muted">Violet: codul ADS1115 pentru FSR ales (saturează la 7FFFh = 32767). Gri punctat: un ADC ideal de 12 biți pe 0…3,3 V, scalat la aceeași axă. Turcoaz: V<sub>in</sub>.</p>
+    </div>
+
+
+    <div class="exp" id="exp4">
+      <h2>Experiment 4 · Cât de des citiți fiecare intrare</h2>
+      <p>Programul citește pe rând AIN0…AIN3 în mod single-shot: scrie Config (pornește conversia), așteaptă 1/DR, citește rezultatul. Magistrala merge cu f<sub>SCL</sub> = <b id="e4scl">—</b>, iar DR al variantei este <b id="e4dr">—</b>.</p>
+      <div class="ctl">
+        <label>DR explorare<select id="selDr4"></select></label>
+        <label>f<sub>SCL</sub> explorare<select id="selScl"><option value="100000">100 kHz (standard)</option><option value="400000">400 kHz (fast)</option></select></label>
+        <div class="buttons noprint" style="margin:0"><button id="btnBudVar">Valorile variantei</button><button id="btnNoteB">Notează cazul în fișă</button></div>
+      </div>
+      <div class="metrics">
+        <div class="metric"><small>t<sub>I2C</sub> = 81 biți / f<sub>SCL</sub></small><b id="mTi2c">—</b></div>
+        <div class="metric"><small>t<sub>intrare</sub> = 1/DR + t<sub>I2C</sub></small><b id="mTch">—</b></div>
+        <div class="metric"><small>f pe intrare (4 intrări)</small><b id="mFch">—</b></div>
+        <div class="metric"><small>f<sub>Nyquist</sub> pe intrare</small><b id="mNyq">—</b></div>
+      </div>
+      <canvas id="cvBud" class="short" aria-label="Bugetul de timp pe intrare și pe un ciclu de patru intrări"></canvas>
+      <div class="legend"><span><i style="background:#6d28d9"></i>conversie 1/DR</span><span><i style="background:#087f8c"></i>tranzacții I2C</span></div>
+      <h3>Schița Arduino-ESP32 pentru varianta voastră</h3>
+      <div class="buttons noprint"><button id="btnCopy">Copiază codul</button><button id="btnIno">Descarcă .ino</button><span id="copyStatus" role="status" class="muted"></span></div>
+      <pre id="sketch"></pre>
+      <p class="muted">Folosește doar biblioteca Wire, cu registrele din fișa tehnică ADS111x. Pinii SDA = 21, SCL = 22 sunt cei obișnuiți pe plăcile ESP32-DevKit; verificați-i pe placa voastră. Necompilată pe placă.</p>
+    </div>
+  </section>
+
+  <section class="tab" id="tab-fisa" role="tabpanel">
+    <h2>Fișa studentului</h2>
+    <p class="muted">Cod fișă: <b id="fCode">—</b> · completați, apoi „Verifică fișa”. Datele rămân doar în acest browser. Folosiți virgula sau punctul pentru zecimale; valorile hex se scriu cu 0x (de exemplu 0x4A).</p>
+    <div class="fields" style="grid-template-columns:1fr 1fr">
+      <label>Nume și prenume<input id="fName" maxlength="80"></label>
+      <label>Grupa<input id="fGroup" maxlength="12" placeholder="141ID"></label>
+    </div>
+    <h3>1. Adresarea (Experiment 1) – calculați înainte de verificare</h3>
+    <div class="fields">
+      <label>Adresa pe 7 biți (hex)<input id="fAddr" placeholder="0x48"></label>
+      <label>Octetul de adresă pentru scriere (hex)<input id="fAB" placeholder="0x90"></label>
+      <label>Octetul de adresă pentru citire (hex)<input id="fABr" placeholder="0x91"></label>
+    </div>
+    <h3>2. Cadrul I2C (Experiment 2)</h3>
+    <div class="fields">
+      <label>Registrul Config (hex, 16 biți)<input id="fCfg" placeholder="0x8583"></label>
+    </div>
+    <h3>3. PGA și codul (Experiment 3)</h3>
+    <div class="fields">
+      <label>FSR ales (±V)<input id="fFsr" inputmode="decimal"></label>
+      <label>LSB (µV)<input id="fLsb" inputmode="decimal"></label>
+      <label>Codul (zecimal)<input id="fCode2" inputmode="numeric"></label>
+      <label>Codul (hex)<input id="fHex" placeholder="0x0000"></label>
+      <label>Câștigul de rezoluție față de 12 biți (×)<input id="fGain" inputmode="decimal"></label>
+    </div>
+    <h3>4. Rata de citire (Experiment 4)</h3>
+    <div class="fields">
+      <label>t<sub>I2C</sub> (ms)<input id="fTi2c" inputmode="decimal"></label>
+      <label>t<sub>intrare</sub> (ms)<input id="fTch" inputmode="decimal"></label>
+      <label>f pe intrare (Hz)<input id="fFch" inputmode="decimal"></label>
+      <label>f<sub>Nyquist</sub> pe intrare (Hz)<input id="fNyq" inputmode="decimal"></label>
+    </div>
+    <h3>5. Concluzii</h3>
+    <label for="fConc">Concluzii (minimum trei propoziții)</label>
+    <textarea id="fConc" maxlength="1500"></textarea>
+    <div class="buttons noprint">
+      <button id="btnCheckSheet">Verifică fișa</button>
+      <button onclick="window.print()">Tipărește / Salvează PDF</button>
+      <button id="btnExportJSON">Export JSON</button>
+      <label style="display:inline-block"><span class="muted">Import JSON</span><input id="fileImport" type="file" accept="application/json,.json"></label>
+      <button id="btnExportCSV">Export CSV</button>
+    </div>
+    <div id="sheetStatus" role="status"></div>
+    <h3>Cazuri notate din banc</h3>
+    <div class="scroll"><table><thead><tr><th>Ora</th><th>Experiment</th><th>Rezultat</th></tr></thead><tbody id="caseRows"></tbody></table></div>
+  </section>
+
+  <section class="tab" id="tab-breviar" role="tabpanel">
+    <h2>Breviar</h2>
+    <details open><summary>Magistrala I2C</summary>
+      <p>Două fire cu rezistoare de pull-up la tensiunea de alimentare: SCL (ceasul, dat de controler) și SDA (date). Ieșirile sunt de tip drenă deschisă: un dispozitiv poate doar trage linia la 0. Datele se schimbă cât SCL este 0 și se citesc cât SCL este 1; START = SDA coboară cât SCL este 1, STOP = SDA urcă cât SCL este 1. Fiecare octet este urmat de un bit ACK, în care receptorul trage SDA la 0. Vitezele obișnuite: 100 kHz (standard) și 400 kHz (fast).</p>
+    </details>
+    <details><summary>Adresarea ADS1115</summary>
+      <div class="formula">ADDR: GND → 0x48 · VDD → 0x49 · SDA → 0x4A · SCL → 0x4B · octet = (adresa7 &lt;&lt; 1) | R/W̄</div>
+      <p>Prin pinul ADDR se pot pune până la patru ADS1115 pe aceeași magistrală, deci până la 16 intrări simple. Un scanner I2C încearcă pe rând toate adresele și raportează cele care răspund cu ACK.</p>
+    </details>
+    <details><summary>Registrul Config al ADS1115</summary>
+      <div class="formula">Config = OS[15] · MUX[14:12] · PGA[11:9] · MODE[8] · DR[7:5] · COMP_MODE[4] · COMP_POL[3] · COMP_LAT[2] · COMP_QUE[1:0]</div>
+      <p>Pointer: 0x00 = registrul de conversie, 0x01 = Config. Valoarea implicită 0x8583. Scrierea Config: octet de adresă (W), pointer 0x01, octetul MSB, octetul LSB. În single-shot, OS = 1 pornește o conversie. MUX pentru intrări simple: 100 = AIN0, 101 = AIN1, 110 = AIN2, 111 = AIN3 (față de GND). Biții de comparator rămân la valorile implicite 00011 (comparator dezactivat).</p>
+    </details>
+    <details><summary>PGA, LSB și codul de ieșire</summary>
+      <div class="formula">LSB = FSR / 2<sup>15</sup> · cod = round(V<sub>in</sub>/LSB), limitat la 7FFFh = 32767 · câștig = (3,3 V/2<sup>12</sup>) / LSB</div>
+      <p>FSR: ±6,144 · ±4,096 · ±2,048 (implicit) · ±1,024 · ±0,512 · ±0,256 V. Ieșirea este în complement față de 2, deci pentru intrări simple se folosesc doar codurile pozitive (15 biți efectivi). Domeniile ±6,144 V și ±4,096 V nu permit tensiuni peste V<sub>DD</sub> + 0,3 V la intrare: la 3,3 V ele doar reduc rezoluția.</p>
+    </details>
+    <details><summary>Rata de date și bugetul de timp</summary>
+      <div class="formula">t<sub>conv</sub> = 1/DR · t<sub>I2C</sub> ≈ 9 octeți × 9 biți / f<sub>SCL</sub> · t<sub>intrare</sub> = 1/DR + t<sub>I2C</sub> · f<sub>intrare</sub> = 1/(4·t<sub>intrare</sub>)</div>
+      <p>DR: 8 · 16 · 32 · 64 · 128 (implicit) · 250 · 475 · 860 SPS. Cei 9 octeți: 4 pentru scrierea Config, 2 pentru alegerea registrului de conversie, 3 pentru citire (adresa + 2 octeți de date); fiecare octet are 8 biți + ACK. Convertorul are un singur ADC: cele patru intrări își împart rata. Componentele peste f<sub>intrare</sub>/2 se aliază (L06).</p>
+    </details>
+    <details><summary>Parametrizarea după N</summary>
+      <p id="paramText"></p>
+    </details>
+    <details><summary>Bibliografie</summary>
+      <p>Texas Instruments, ADS111x Ultra-Small, Low-Power, I2C-Compatible, 860-SPS, 16-Bit ADCs, SBAS444E (rev. dec. 2024); Texas Instruments, A Basic Guide to I2C (notă de aplicație); Basics of the I2C Communication Protocol (material din Drive-ul disciplinei); Espressif, Arduino-ESP32 – Wire (I2C); National Instruments, Acquiring an Analog Signal; Tektronix/Keithley, Data Acquisition and Control Handbook; cursul CDM, Cap. V; L05, L06 și L07 CDM.</p>
+    </details>
+  </section>
+
+  <footer>Conf.dr.ing. Argatu Florin Ciprian · CDM · 2026–2027 · L08 v<span id="verFoot"></span> · Aplicația rulează local și nu transmite note. · <a href="../index.html">Laboratorul virtual CDM</a></footer>
+</main>
+<script>
+'use strict';
+const VERSION = '1.0';
+const CODE = 'CDM-L08';
+const N_MIN = 1, N_MAX = 30, N_EXEMPLU = 7;
+const VREF12 = 3.3, VDD = 3.3, I2C_BITS = 81, NIN = 4;
+const FSR = [6.144, 4.096, 2.048, 1.024, 0.512, 0.256];
+const DR = [8, 16, 32, 64, 128, 250, 475, 860];
+const ADDR_NAMES = ['GND', 'VDD', 'SDA', 'SCL'];
+const COL = { v: '#6d28d9', vl: '#c4b5fd', t: '#087f8c', g: '#cbd5e1', r: '#a3191f', ax: '#3f3a48', grid: '#ece8f3' };
+
+const $ = (id) => document.getElementById(id);
+const fmt = (v, d = 1) => Number.isFinite(v) ? v.toFixed(d).replace('.', ',') : '—';
+const num = (s) => { const v = parseFloat(String(s).trim().replace(',', '.')); return Number.isFinite(v) ? v : NaN; };
+const hex = (v, w) => '0x' + v.toString(16).toUpperCase().padStart(w, '0');
+const parseHex = (s) => { const t = String(s).trim().toLowerCase().replace(/^0x/, ''); return /^[0-9a-f]+$/.test(t) ? parseInt(t, 16) : NaN; };
+function esc(t) { return String(t).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
+function status(id, msg, kind) { const el = $(id); el.className = kind ? 'verdict ' + kind : ''; el.innerHTML = msg; }
+function validN(n) { return Number.isInteger(n) && n >= N_MIN && n <= N_MAX; }
+
+function pgaFor(vin) { let k = -1; FSR.forEach((f, i) => { if (f >= vin) k = i; }); return k; }
+function codeOf(vin, fsrIdx) { const lsb = FSR[fsrIdx] / 32768; return Math.min(32767, Math.max(-32768, Math.round(vin / lsb))); }
+function cfgOf(mux, pga, mode, dr) { return (1 << 15) | (mux << 12) | (pga << 9) | (mode << 8) | (dr << 5) | 0x03; }
+function tI2c(scl) { return I2C_BITS / scl; }
+
+function variant(N) {
+  const addrI = N % 4, addr = 0x48 + addrI, ab = addr << 1;
+  const ain = (N + 1) % 4, mux = 4 + ain;
+  const vin = Math.round((0.08 + 0.105 * ((N * 7) % 30)) * 1000) / 1000;
+  const pga = pgaFor(vin), lsb = FSR[pga] / 32768, code = codeOf(vin, pga);
+  const drI = [4, 5, 6, 7, 3][N % 5], scl = [100000, 400000][N % 2];
+  const cfg = cfgOf(mux, pga, 1, drI), ti = tI2c(scl), tch = 1 / DR[drI] + ti, fch = 1 / (NIN * tch);
+  return { N, addrI, addr, ab, abr: ab | 1, ain, mux, vin, pga, fsr: FSR[pga], lsb, code, hexc: hex(code & 0xFFFF, 4),
+    gain: (VREF12 / 4096) / lsb, drI, dr: DR[drI], scl, cfg, ti, tch, fch, nyq: fch / 2,
+    vcode: CODE + '-N' + String(N).padStart(2, '0') + '-v' + VERSION };
+}
+let V = null;
+// ---------- desen ----------
+function setupCanvas(c) {
+  const dpr = window.devicePixelRatio || 1, w = c.clientWidth, h = c.clientHeight;
+  c.width = Math.round(w * dpr); c.height = Math.round(h * dpr);
+  const g = c.getContext('2d'); g.setTransform(dpr, 0, 0, dpr, 0, 0); g.clearRect(0, 0, w, h); g.font = '12px system-ui,Arial,sans-serif'; return { g, w, h };
+}
+function frame(g, w, h, L, xlabel, ylabel) {
+  g.strokeStyle = COL.ax; g.lineWidth = 1; g.beginPath(); g.moveTo(L.l, L.t); g.lineTo(L.l, h - L.b); g.lineTo(w - L.r, h - L.b); g.stroke();
+  g.fillStyle = COL.ax; g.textAlign = 'right'; g.fillText(xlabel, w - L.r, h - 6); g.textAlign = 'left'; g.fillText(ylabel, L.l + 4, L.t - 6);
+}
+function line(g, pts, color, width, dash) { g.strokeStyle = color; g.lineWidth = width; g.setLineDash(dash || []); g.beginPath(); pts.forEach((p, i) => i ? g.lineTo(p[0], p[1]) : g.moveTo(p[0], p[1])); g.stroke(); g.setLineDash([]); }
+function rrect(g, x, y, w, h, r) { g.beginPath(); g.moveTo(x + r, y); g.arcTo(x + w, y, x + w, y + h, r); g.arcTo(x + w, y + h, x, y + h, r); g.arcTo(x, y + h, x, y, r); g.arcTo(x, y, x + w, y, r); g.closePath(); }
+
+// Experiment 2
+let i2cPos = 0, i2cPlay = false;
+function e2Cfg() { return { mux: Number($('selMux').value), pga: Number($('selPga').value), dr: Number($('selDr').value), mode: Number($('selMode').value), a: Number($('selAddr').value) }; }
+function i2cBytes() { const p = e2Cfg(), cfg = cfgOf(p.mux, p.pga, p.mode, p.dr); return { cfg, bytes: [((0x48 + p.a) << 1), 0x01, cfg >> 8, cfg & 0xFF], names: ['adresă + W', 'pointer Config', 'Config MSB', 'Config LSB'] }; }
+function drawI2C() {
+  const c = $('cvI2C'); if (!c.offsetParent) return;
+  const { g, w, h } = setupCanvas(c), { bytes, names } = i2cBytes();
+  const L = 46, R = 12, nb = 4 * 9 + 2, PW = w - L - R, bw = PW / nb, ySclH = 40, ySclL = 80, ySdaH = 130, ySdaL = 170;
+  g.fillStyle = COL.ax; g.textAlign = 'left'; g.fillText('SCL', 6, (ySclH + ySclL) / 2 + 4); g.fillText('SDA', 6, (ySdaH + ySdaL) / 2 + 4);
+  const seq = [];  // fiecare element: {bit, kind}
+  bytes.forEach((b) => { for (let k = 7; k >= 0; k--) seq.push({ bit: (b >> k) & 1, kind: 'd' }); seq.push({ bit: 0, kind: 'a' }); });
+  // SCL: high la START, impulsuri la fiecare bit, high la STOP
+  const scl = [[L, ySclH], [L + bw * 0.6, ySclH]];
+  for (let i = 0; i < seq.length; i++) { const x0 = L + bw * (i + 1); scl.push([x0, ySclH], [x0, ySclL], [x0 + bw * 0.25, ySclL], [x0 + bw * 0.25, ySclH], [x0 + bw * 0.75, ySclH], [x0 + bw * 0.75, ySclL], [x0 + bw, ySclL]); }
+  scl.push([L + bw * (seq.length + 1), ySclH], [w - R, ySclH]);
+  line(g, scl, COL.ax, 1.6);
+  // SDA
+  let x = L, prev = 1; const yOf = (b) => b ? ySdaH : ySdaL;
+  g.lineWidth = 2.4;
+  g.strokeStyle = COL.r; g.beginPath(); g.moveTo(L, ySdaH); g.lineTo(L + bw * 0.4, ySdaH); g.lineTo(L + bw * 0.6, ySdaL); g.stroke(); prev = 0;
+  for (let i = 0; i < seq.length; i++) {
+    x = L + bw * (i + 1); const b = seq[i].bit, col = seq[i].kind === 'a' ? COL.t : COL.v;
+    g.strokeStyle = col; g.beginPath(); g.moveTo(x - bw * 0.4, yOf(prev)); g.lineTo(x + bw * 0.1, yOf(prev)); g.lineTo(x + bw * 0.12, yOf(b)); g.lineTo(x + bw, yOf(b)); g.stroke(); prev = b;
+    if (bw > 9) { g.fillStyle = col; g.textAlign = 'center'; g.fillText(seq[i].kind === 'a' ? 'A' : String(b), x + bw * 0.5, ySdaL + 16); }
+  }
+  const xs = L + bw * (seq.length + 1);
+  g.strokeStyle = COL.r; g.beginPath(); g.moveTo(xs, yOf(prev)); g.lineTo(xs, ySdaL); g.lineTo(xs + bw * 0.6, ySdaL); g.lineTo(xs + bw * 0.8, ySdaH); g.lineTo(w - R, ySdaH); g.stroke();
+  g.fillStyle = COL.r; g.textAlign = 'center'; g.fillText('S', L + bw * 0.5, ySdaH - 8); g.fillText('P', xs + bw * 0.7, ySdaH - 8);
+  // etichete octeți
+  for (let k = 0; k < 4; k++) {
+    const x0 = L + bw * (1 + 9 * k), x1 = x0 + bw * 9;
+    g.strokeStyle = COL.vl; g.lineWidth = 1; g.strokeRect(x0 + 1, 196, x1 - x0 - 2, 44);
+    g.fillStyle = COL.v; g.font = 'bold 14px system-ui,Arial,sans-serif'; g.fillText(hex(bytes[k], 2), (x0 + x1) / 2, 214);
+    g.fillStyle = COL.ax; g.font = '12px system-ui,Arial,sans-serif'; g.fillText(names[k], (x0 + x1) / 2, 232);
+  }
+  // cursor animat
+  const cx = L + bw * Math.min(seq.length + 2, i2cPos);
+  g.fillStyle = 'rgba(8,127,140,0.12)'; g.fillRect(L, 20, cx - L, 172);
+  line(g, [[cx, 20], [cx, 192]], COL.t, 2);
+  const bi = Math.floor(i2cPos) - 1;
+  g.textAlign = 'right'; g.fillStyle = COL.ax;
+  g.fillText(bi >= 0 && bi < seq.length ? ('octetul ' + (Math.floor(bi / 9) + 1) + ' · ' + (seq[bi].kind === 'a' ? 'ACK de la ADS1115' : 'bitul ' + (7 - bi % 9) + ' = ' + seq[bi].bit)) : (bi < 0 ? 'START' : 'STOP'), w - R, 14);
+}
+function updE2() {
+  const p = e2Cfg(), { cfg, bytes } = i2cBytes(), addr = 0x48 + p.a;
+  $('mAddr').textContent = hex(addr, 2); $('mAB').textContent = hex(bytes[0], 2); $('mCfg').textContent = hex(cfg, 4);
+  const ok = V && cfg === V.cfg && addr === V.addr;
+  $('mCfgV').innerHTML = ok ? '<span class="tag ok">varianta voastră</span>' : '<span class="tag bad">altă configurație</span>';
+  const b = cfg.toString(2).padStart(16, '0');
+  $('cfgBits').textContent = 'bit:   15 | 14 13 12 | 11 10  9 |  8 |  7  6  5 | 4 3 2 1 0\n' +
+    'câmp:  OS |   MUX    |   PGA    |MODE|    DR    | COMP (00011)\n' +
+    'val:    ' + b[0] + ' |  ' + b.slice(1, 4).split('').join('  ') + '  |  ' + b.slice(4, 7).split('').join('  ') + '  |  ' + b[7] + ' |  ' + b.slice(8, 11).split('').join('  ') + '  | ' + b.slice(11).split('').join(' ') + '\n\n' +
+    'Scriere: [S] ' + bytes.map((x) => hex(x, 2)).join(' [A] ') + ' [A] [P]   →   AIN' + (p.mux - 4 >= 0 ? (p.mux - 4) : '?') + ', ±' + fmt(FSR[p.pga], 3) + ' V, ' + DR[p.dr] + ' SPS, ' + (p.mode ? 'single-shot' : 'continuu');
+  drawI2C();
+}
+
+// Experiment 3
+function e3Params() { return { fi: Number($('selFsr').value), vin: Number($('vinSlider').value) }; }
+function drawPga() {
+  const c = $('cvPga'); if (!c.offsetParent) return;
+  const { g, w, h } = setupCanvas(c), L = { l: 62, r: 14, t: 22, b: 32 }, PW = w - L.l - L.r, PH = h - L.t - L.b;
+  const { fi, vin } = e3Params(), vMax = 3.6, X = (v) => L.l + v / vMax * PW, Y = (cd) => L.t + (1 - cd / 32767) * PH;
+  g.strokeStyle = COL.grid; g.fillStyle = COL.ax; g.textAlign = 'right';
+  for (let k = 0; k <= 4; k++) { const cd = 32767 * k / 4; g.beginPath(); g.moveTo(L.l, Y(cd)); g.lineTo(w - L.r, Y(cd)); g.stroke(); g.fillText(Math.round(cd), L.l - 4, Y(cd) + 4); }
+  g.textAlign = 'center'; for (let v = 0; v <= 3.5; v += 0.5) g.fillText(fmt(v, 1), X(v), h - L.b + 14);
+  frame(g, w, h, L, 'Vin (V)', 'cod');
+  g.fillStyle = 'rgba(163,25,31,0.10)'; g.fillRect(X(VDD), L.t, X(vMax) - X(VDD), PH); g.fillStyle = COL.r; g.textAlign = 'left'; g.fillText('peste VDD', X(VDD) + 4, L.t + 12);
+  const ref = []; for (let i = 0; i <= 200; i++) { const v = VDD * i / 200; ref.push([X(v), Y(v / VDD * 32767)]); } line(g, ref, COL.ax, 1.2, [3, 4]);
+  const fs = FSR[fi], pts = []; for (let i = 0; i <= 300; i++) { const v = vMax * i / 300; pts.push([X(v), Y(Math.min(32767, v / fs * 32768))]); } line(g, pts, COL.v, 2.6);
+  line(g, [[X(vin), L.t], [X(vin), h - L.b]], COL.t, 2, [5, 4]);
+  const cd = codeOf(vin, fi); g.fillStyle = COL.v; g.beginPath(); g.arc(X(vin), Y(cd), 5, 0, 2 * Math.PI); g.fill();
+  g.textAlign = 'left'; g.fillText('±' + fmt(fs, 3) + ' V → cod ' + cd, Math.min(X(vin) + 8, w - 180), Y(cd) + (cd > 28000 ? 16 : -8));
+}
+function updE3(note) {
+  const { fi, vin } = e3Params(), lsb = FSR[fi] / 32768, cd = codeOf(vin, fi), best = pgaFor(vin);
+  $('vinVal').textContent = fmt(vin, 3);
+  $('mLsb').textContent = fmt(lsb * 1e6, 4) + ' µV'; $('mCode').textContent = cd; $('mHex').textContent = hex(cd & 0xFFFF, 4);
+  $('mGain').textContent = fmt((VREF12 / 4096) / lsb, 3) + ' ×';
+  let msg, kind;
+  if (vin > VDD + 0.3) { msg = 'Tensiunea depășește V<sub>DD</sub> + 0,3 V: interzis de fișa tehnică, indiferent de FSR.'; kind = 'bad'; }
+  else if (cd >= 32767) { msg = 'Saturație: codul este blocat la 7FFFh. Alegeți un FSR mai mare.'; kind = 'bad'; }
+  else if (fi === best) { msg = 'Corect: cel mai mic FSR care cuprinde V<sub>in</sub>, deci LSB minim. Pe acest domeniu folosiți ' + fmt(cd / 32767 * 100, 1) + ' % din codurile pozitive.'; kind = 'ok'; }
+  else { msg = 'Fără saturație, dar există un FSR mai mic care cuprinde V<sub>in</sub>: pierdeți rezoluție.'; kind = 'warn'; }
+  status('pgaVerdict', msg, kind); drawPga();
+  if (note) addCase('3 · PGA', 'Vin = ' + fmt(vin, 3) + ' V, FSR ±' + fmt(FSR[fi], 3) + ' V → LSB ' + fmt(lsb * 1e6, 4) + ' µV, cod ' + cd + ' (' + hex(cd & 0xFFFF, 4) + ')');
+}
+
+
+// Experiment 1
+function e1() { return { cnt: Number($('selCnt').value), a: Number($('selAd1').value) }; }
+function drawBus() {
+  const c = $('cvBus'); if (!c.offsetParent) return;
+  const { g, w, h } = setupCanvas(c), { cnt, a } = e1();
+  const ySda = 60, yScl = 90, x0 = 150, x1 = w - 20;
+  rrect(g, 16, 40, 110, 70, 10); g.fillStyle = '#fff'; g.fill(); g.strokeStyle = COL.ax; g.lineWidth = 2; g.stroke();
+  g.fillStyle = COL.ax; g.textAlign = 'center'; g.font = 'bold 13px system-ui,Arial,sans-serif'; g.fillText('ESP32', 71, 68); g.font = '12px system-ui,Arial,sans-serif'; g.fillText('controler', 71, 88);
+  g.strokeStyle = COL.v; g.lineWidth = 3; g.beginPath(); g.moveTo(126, ySda); g.lineTo(x1, ySda); g.moveTo(126, yScl); g.lineTo(x1, yScl); g.stroke();
+  g.fillStyle = COL.v; g.textAlign = 'left'; g.fillText('SDA (GPIO21)', x0, ySda - 6); g.fillText('SCL (GPIO22)', x0, yScl + 16);
+  // pull-up
+  [[x0 + 110, ySda], [x0 + 140, yScl]].forEach(([x, y]) => { g.strokeStyle = COL.ax; g.lineWidth = 1.5; g.beginPath(); g.moveTo(x, y); g.lineTo(x, 22); g.stroke(); g.fillStyle = '#fff'; g.fillRect(x - 5, 26, 10, 20); g.strokeRect(x - 5, 26, 10, 20); });
+  g.fillStyle = COL.ax; g.fillText('pull-up la 3,3 V', x0 + 152, 30);
+  const span = (x1 - x0 - 200) / 4, order = [a].concat([0, 1, 2, 3].filter((k) => k !== a)).slice(0, cnt);
+  order.forEach((ad, i) => {
+    const x = x0 + 200 + i * span, bw = Math.min(140, span - 14), hi = ad === a;
+    g.strokeStyle = COL.ax; g.lineWidth = 1.5; g.beginPath(); g.moveTo(x + 30, ySda); g.lineTo(x + 30, 130); g.moveTo(x + 50, yScl); g.lineTo(x + 50, 130); g.stroke();
+    rrect(g, x, 130, bw, 96, 10); g.fillStyle = hi ? '#f5f3ff' : '#fff'; g.fill(); g.strokeStyle = hi ? COL.v : COL.g; g.lineWidth = hi ? 2.5 : 1.5; g.stroke();
+    g.fillStyle = hi ? COL.v : COL.ax; g.textAlign = 'center'; g.font = 'bold 13px system-ui,Arial,sans-serif'; g.fillText('ADS1115', x + bw / 2, 152);
+    g.font = '12px system-ui,Arial,sans-serif'; g.fillText('ADDR → ' + ADDR_NAMES[ad], x + bw / 2, 172); g.fillText(hex(0x48 + ad, 2), x + bw / 2, 192); g.fillText('AIN0…AIN3', x + bw / 2, 212);
+  });
+  g.textAlign = 'left'; g.fillStyle = COL.ax; g.fillText(cnt + ' × 4 = ' + (cnt * 4) + ' intrări simple pe două fire', 16, h - 12);
+}
+function updE1() {
+  const { cnt, a } = e1(), ad = 0x48 + a;
+  $('mA7').textContent = hex(ad, 2); $('mAW').textContent = hex(ad << 1, 2); $('mAR').textContent = hex((ad << 1) | 1, 2); $('mAin').textContent = cnt * 4;
+  const found = [a].concat([0, 1, 2, 3].filter((k) => k !== a)).slice(0, cnt).map((k) => 0x48 + k).sort((p, q) => p - q);
+  $('scanOut').textContent = 'Scanner I2C (de exemplu I2C_Address_Finder.ino):\n' + found.map((x) => '  dispozitiv găsit la adresa ' + hex(x, 2) + ' (' + x.toString(2).padStart(7, '0') + 'b)').join('\n') + '\n  ' + found.length + ' dispozitiv(e)';
+  drawBus();
+}
+
+// Experiment 4
+function e4Params() { return { dr: DR[Number($('selDr4').value)], scl: Number($('selScl').value) }; }
+function drawBud() {
+  const c = $('cvBud'); if (!c.offsetParent) return;
+  const { g, w, h } = setupCanvas(c), { dr, scl } = e4Params(), tc = 1 / dr, ti = tI2c(scl), tch = tc + ti;
+  const L = 14, R = 14, PW = w - L - R;
+  g.fillStyle = COL.ax; g.textAlign = 'left'; g.fillText('o intrare: ' + fmt(tch * 1000, 3) + ' ms', L, 16);
+  let x = L; [[tc, COL.v], [ti, COL.t]].forEach(([t, col]) => { const ww = t / tch * PW; g.fillStyle = col; g.fillRect(x, 24, ww, 34); x += ww; });
+  g.fillStyle = COL.ax; g.fillText('un ciclu AIN0…AIN3: 4 × ' + fmt(tch * 1000, 3) + ' ms = ' + fmt(NIN * tch * 1000, 3) + ' ms', L, 86);
+  const cw = PW / NIN;
+  for (let k = 0; k < NIN; k++) { let xx = L + k * cw; [[tc, COL.v], [ti, COL.t]].forEach(([t, col]) => { const ww = t / tch * cw; g.fillStyle = col; g.fillRect(xx + 1, 94, ww - 2, 28); xx += ww; }); g.fillStyle = COL.ax; g.textAlign = 'center'; g.fillText('AIN' + k, L + (k + 0.5) * cw, 140); }
+  g.textAlign = 'left'; g.fillText('ponderea I2C: ' + fmt(ti / tch * 100, 1) + ' % din timp', L, 160);
+}
+function updE4() {
+  const { dr, scl } = e4Params(), ti = tI2c(scl), tch = 1 / dr + ti, fch = 1 / (NIN * tch);
+  $('e4scl').textContent = (V.scl / 1000) + ' kHz'; $('e4dr').textContent = V.dr + ' SPS';
+  $('mTi2c').textContent = fmt(ti * 1000, 4) + ' ms'; $('mTch').textContent = fmt(tch * 1000, 3) + ' ms'; $('mFch').textContent = fmt(fch, 2) + ' Hz'; $('mNyq').textContent = fmt(fch / 2, 2) + ' Hz';
+  drawBud();
+}
+function sketch() {
+  const base = cfgOf(4, V.pga, 1, V.drI) & ~(7 << 12), tcUs = Math.ceil(1e6 / V.dr) + 100;
+  return [
+    '// ' + V.vcode + ' – citire AIN0…AIN3 de pe ADS1115, single-shot, doar Wire',
+    '// Arduino-ESP32 3.x · necompilat pe placă · registrele din fișa TI ADS111x (SBAS444E)',
+    '#include <Wire.h>',
+    '',
+    'const uint8_t  ADS_ADDR = ' + hex(V.addr, 2) + ';          // ADDR legat la ' + ADDR_NAMES[V.addrI],
+    'const uint8_t  REG_CONV = 0x00, REG_CFG = 0x01;',
+    'const uint16_t CFG_BASE = ' + hex(base, 4) + ';        // OS=1, MUX=000 (se completează), ±' + fmt(V.fsr, 3).replace(',', '.') + ' V, single-shot, ' + V.dr + ' SPS',
+    'const float    LSB_V    = ' + (V.lsb).toPrecision(6) + ';     // FSR / 32768',
+    'const uint32_t TCONV_US = ' + tcUs + ';          // 1/DR + 100 µs rezervă',
+    '',
+    'void writeReg(uint8_t reg, uint16_t v) {',
+    '  Wire.beginTransmission(ADS_ADDR);',
+    '  Wire.write(reg); Wire.write(v >> 8); Wire.write(v & 0xFF);',
+    '  Wire.endTransmission();',
+    '}',
+    'int16_t readConv() {',
+    '  Wire.beginTransmission(ADS_ADDR); Wire.write(REG_CONV); Wire.endTransmission();',
+    '  Wire.requestFrom(ADS_ADDR, (uint8_t)2);',
+    '  uint8_t hi = Wire.read(), lo = Wire.read();',
+    '  return (int16_t)((hi << 8) | lo);          // complement față de 2',
+    '}',
+    '',
+    'void setup() {',
+    '  Serial.begin(115200);',
+    '  Wire.begin(21, 22);                        // SDA, SCL – verificați placa',
+    '  Wire.setClock(' + V.scl + ');',
+    '  Wire.beginTransmission(ADS_ADDR);',
+    '  Serial.printf("ADS1115 la 0x%02X: %s\\n", ADS_ADDR, Wire.endTransmission() == 0 ? "ACK" : "lipsă");',
+    '}',
+    '',
+    'void loop() {',
+    '  uint32_t t0 = micros();',
+    '  for (int ain = 0; ain < 4; ain++) {',
+    '    uint16_t cfg = CFG_BASE | ((uint16_t)(4 + ain) << 12);   // MUX = 100 + ain (AINx față de GND)',
+    '    writeReg(REG_CFG, cfg);                  // pornește o conversie',
+    '    delayMicroseconds(TCONV_US);',
+    '    int16_t cod = readConv();',
+    '    Serial.printf("AIN%d  cfg 0x%04X  %6d  %.5f V\\n", ain, cfg, cod, cod * LSB_V);',
+    '  }',
+    '  Serial.printf("ciclu: %lu us\\n", micros() - t0);',
+    '  delay(1000);',
+    '}'
+  ].join('\n');
+}
+
+// ---------- fișa ----------
+let cases = [];
+function addCase(exp, res) { cases.push({ ora: new Date().toLocaleTimeString('ro-RO'), exp, res }); renderCases(); saveLocal(); }
+function renderCases() { $('caseRows').innerHTML = cases.map((c) => '<tr><td>' + esc(c.ora) + '</td><td>' + esc(c.exp) + '</td><td>' + esc(c.res) + '</td></tr>').join('') || '<tr><td colspan="3" class="muted">Niciun caz notat încă.</td></tr>'; }
+const SHEET_FIELDS = ['fName', 'fGroup', 'fAddr', 'fAB', 'fABr', 'fCfg', 'fFsr', 'fLsb', 'fCode2', 'fHex', 'fGain', 'fTi2c', 'fTch', 'fFch', 'fNyq', 'fConc'];
+function sheetData() { const o = {}; SHEET_FIELDS.forEach((k) => { o[k] = $(k).value; }); return o; }
+function checkSheet() {
+  const d = sheetData(), rows = [], close = (a, b, tol) => Number.isFinite(a) && Math.abs(a - b) <= tol, rel = (a, b, r, mn) => close(a, b, Math.max(mn || 0, Math.abs(b) * r));
+  rows.push(['Adresa 7 biți', parseHex(d.fAddr) === V.addr, 'tabelul ADDR din fișa tehnică']);
+  rows.push(['Octet scriere', parseHex(d.fAB) === V.ab, '(adresa << 1) | 0']);
+  rows.push(['Octet citire', parseHex(d.fABr) === V.abr, '(adresa << 1) | 1']);
+  rows.push(['Registrul Config', parseHex(d.fCfg) === V.cfg, 'OS·MUX·PGA·MODE·DR·00011']);
+  rows.push(['FSR', close(num(d.fFsr), V.fsr, 0.0005), 'cel mai mic FSR ≥ Vin']);
+  rows.push(['LSB', rel(num(d.fLsb), V.lsb * 1e6, 0.002), 'FSR/2^15']);
+  rows.push(['Cod zecimal', close(num(d.fCode2), V.code, 1), 'round(Vin/LSB)']);
+  rows.push(['Cod hex', Math.abs(parseHex(d.fHex) - V.code) <= 1, 'complement față de 2, 16 biți']);
+  rows.push(['Câștig de rezoluție', rel(num(d.fGain), V.gain, 0.005), '(3,3/4096)/LSB']);
+  rows.push(['t I2C', rel(num(d.fTi2c), V.ti * 1000, 0.01), '81 biți / fSCL']);
+  rows.push(['t intrare', rel(num(d.fTch), V.tch * 1000, 0.01), '1/DR + tI2C']);
+  rows.push(['f pe intrare', rel(num(d.fFch), V.fch, 0.01), '1/(4·t intrare)']);
+  rows.push(['f Nyquist', rel(num(d.fNyq), V.nyq, 0.01), 'f intrare / 2']);
+  rows.push(['Concluzii', d.fConc.trim().split(/[.!?]+/).filter((x) => x.trim().length > 3).length >= 3, 'minimum trei propoziții']);
+  const good = rows.filter((r) => r[1]).length;
+  $('sheetStatus').className = 'verdict ' + (good === rows.length ? 'ok' : 'warn');
+  $('sheetStatus').innerHTML = '<b>' + good + ' din ' + rows.length + ' puncte verificate corect.</b> Verificarea este orientativă și nu este notă.<div class="scroll"><table style="margin-top:8px"><tbody>' +
+    rows.map((r) => '<tr><td>' + esc(r[0]) + '</td><td class="check ' + (r[1] ? 'ok">corect' : 'bad">de revăzut') + '</td><td>' + esc(r[2]) + '</td></tr>').join('') + '</tbody></table></div>';
+  saveLocal();
+  return { good, total: rows.length };
+}
+function stamp() { return new Date().toISOString().slice(0, 19).replace('T', ' '); }
+function download(name, content, type) { const blob = new Blob([content], { type }), u = URL.createObjectURL(blob), a = document.createElement('a'); a.href = u; a.download = name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(u), 1000); }
+function toCSV(rows) { return String.fromCharCode(0xFEFF) + rows.map((r) => r.map((c) => '"' + String(c).replace(/"/g, '""') + '"').join(';')).join('\r\n'); }
+function fileBase() { return CODE + '_N' + String(V.N).padStart(2, '0') + '_v' + VERSION; }
+function exportCSV() {
+  const d = sheetData(), base = [CODE, VERSION, V.N, stamp()];
+  const rows = [['CODE', 'VERSION', 'N', 'data_ora', 'marime', 'valoare', 'unitate']];
+  [['adresa7', d.fAddr, 'hex'], ['octet_W', d.fAB, 'hex'], ['octet_R', d.fABr, 'hex'], ['config', d.fCfg, 'hex'], ['FSR', d.fFsr, 'V'], ['LSB', d.fLsb, 'uV'], ['cod', d.fCode2, '-'], ['cod_hex', d.fHex, 'hex'], ['castig_rezolutie', d.fGain, 'x'], ['t_I2C', d.fTi2c, 'ms'], ['t_intrare', d.fTch, 'ms'], ['f_intrare', d.fFch, 'Hz'], ['f_Nyquist', d.fNyq, 'Hz']].forEach((r) => rows.push(base.concat(r)));
+  cases.forEach((c) => rows.push(base.concat(['caz ' + c.exp, c.res, c.ora])));
+  download(fileBase() + '.csv', toCSV(rows), 'text/csv;charset=utf-8');
+}
+function exportJSON() { download(fileBase() + '.json', JSON.stringify({ code: CODE, version: VERSION, N: V.N, variantCode: V.vcode, saved: stamp(), sheet: sheetData(), cases }, null, 2), 'application/json'); }
+function importJSON(file) {
+  const r = new FileReader();
+  r.onload = () => {
+    try {
+      const o = JSON.parse(r.result);
+      if (o.code !== CODE) throw new Error('fișierul nu este o fișă ' + CODE);
+      if (o.version !== VERSION) throw new Error('fișa este din versiunea ' + o.version + ', aplicația este ' + VERSION);
+      if (!validN(o.N) || typeof o.sheet !== 'object' || !o.sheet || !Array.isArray(o.cases)) throw new Error('structură incompletă');
+      $('nInput').value = o.N; applyVariant(o.N, false);
+      SHEET_FIELDS.forEach((k) => { if (typeof o.sheet[k] === 'string') $(k).value = o.sheet[k]; });
+      cases = o.cases.filter((c) => c && typeof c.exp === 'string' && typeof c.res === 'string').map((c) => ({ ora: String(c.ora || ''), exp: c.exp, res: c.res }));
+      renderCases(); saveLocal(); status('sheetStatus', 'Fișa N = ' + o.N + ' a fost importată.', 'ok');
+    } catch (e) { status('sheetStatus', 'Import respins: ' + esc(e.message) + '.', 'bad'); }
+  };
+  r.readAsText(file);
+}
+function storeKey() { return CODE + '-' + VERSION; }
+function saveLocal() { try { localStorage.setItem(storeKey(), JSON.stringify({ N: V.N, sheet: sheetData(), cases })); } catch (e) { status('sheetStatus', 'Salvarea locală nu este disponibilă; folosiți Export JSON.', 'warn'); } }
+function restoreLocal() { try { const o = JSON.parse(localStorage.getItem(storeKey()) || 'null'); return o && validN(o.N) ? o : null; } catch (e) { return null; } }
+
+function setE2Variant() { $('selMux').value = V.mux; $('selPga').value = V.pga; $('selDr').value = V.drI; $('selMode').value = 1; $('selAddr').value = V.addrI; i2cPos = 0; updE2(); }
+function applyVariant(N, restoreSheet) {
+  if (!validN(N)) { status('nStatus', 'N trebuie să fie un număr întreg între ' + N_MIN + ' și ' + N_MAX + '.', 'bad'); return; }
+  V = variant(N);
+  $('vCode').textContent = V.vcode; $('fCode').textContent = V.vcode;
+  $('vData').innerHTML = 'ADDR la <b>' + ADDR_NAMES[V.addrI] + '</b> · senzorul pe <b>AIN' + V.ain + '</b>, V<sub>in</sub> = <b>' + fmt(V.vin, 3) + ' V</b> · DR = <b>' + V.dr + ' SPS</b> · f<sub>SCL</sub> = <b>' + V.scl / 1000 + ' kHz</b>';
+  status('nStatus', 'Varianta N = ' + N + ' este activă.', '');
+  $('e1addr').textContent = ADDR_NAMES[V.addrI]; $('selAd1').value = V.addrI; $('selCnt').value = '1';
+  $('e2addr').textContent = ADDR_NAMES[V.addrI]; $('e2ain').textContent = 'AIN' + V.ain; $('e2dr').textContent = V.dr + ' SPS';
+  $('e3vin').textContent = fmt(V.vin, 3); $('vinSlider').value = V.vin; $('selFsr').value = '0';
+  $('selDr4').value = V.drI; $('selScl').value = V.scl;
+  $('paramText').innerHTML = 'Experiment 1 și 2: ADDR la GND, VDD, SDA, SCL pentru N mod 4 = 0, 1, 2, 3; intrarea AIN[(N + 1) mod 4]; DR = 128, 250, 475, 860, 64 SPS pentru N mod 5 = 0…4. Experiment 3: V<sub>in</sub> = 0,08 + 0,105·((7·N) mod 30) V. Experiment 4: f<sub>SCL</sub> = 100 kHz pentru N par, 400 kHz pentru N impar; se citesc 4 intrări pe rând.';
+  updE1(); setE2Variant(); updE3(false); updE4(); $('sketch').textContent = sketch();
+  if (restoreSheet) {
+    const o = restoreLocal();
+    if (o && o.N === N) { SHEET_FIELDS.forEach((k) => { if (o.sheet && typeof o.sheet[k] === 'string') $(k).value = o.sheet[k]; }); cases = Array.isArray(o.cases) ? o.cases : []; }
+    else { SHEET_FIELDS.forEach((k) => { $(k).value = ''; }); cases = []; }
+    renderCases();
+  }
+}
+function redrawAll() { drawBus(); drawI2C(); drawPga(); drawBud(); }
+let lastTs = null;
+function loop(ts) {
+  if (lastTs !== null && i2cPlay) { i2cPos += (ts - lastTs) / 1000 * Number($('speed2').value); if (i2cPos > 40) i2cPos = 0; drawI2C(); }
+  lastTs = ts; requestAnimationFrame(loop);
+}
+
+document.querySelectorAll('[role=tab]').forEach((b) => b.addEventListener('click', () => {
+  document.querySelectorAll('[role=tab]').forEach((x) => x.setAttribute('aria-selected', x === b ? 'true' : 'false'));
+  document.querySelectorAll('.tab').forEach((t) => t.classList.toggle('active', t.id === 'tab-' + b.dataset.tab));
+  redrawAll();
+}));
+document.querySelectorAll('.expbtn').forEach((b) => b.addEventListener('click', () => {
+  document.querySelectorAll('.expbtn').forEach((x) => x.setAttribute('aria-pressed', x === b ? 'true' : 'false'));
+  document.querySelectorAll('.exp').forEach((e) => e.classList.toggle('active', e.id === 'exp' + b.dataset.exp));
+  redrawAll();
+}));
+$('selMux').innerHTML = ['AIN0/AIN1', 'AIN0/AIN3', 'AIN1/AIN3', 'AIN2/AIN3', 'AIN0/GND', 'AIN1/GND', 'AIN2/GND', 'AIN3/GND'].map((t, i) => '<option value="' + i + '">' + i.toString(2).padStart(3, '0') + ' – ' + t + '</option>').join('');
+$('selPga').innerHTML = FSR.map((f, i) => '<option value="' + i + '">' + i.toString(2).padStart(3, '0') + ' – ±' + fmt(f, 3) + ' V</option>').join('');
+$('selDr').innerHTML = DR.map((d, i) => '<option value="' + i + '">' + i.toString(2).padStart(3, '0') + ' – ' + d + ' SPS</option>').join('');
+$('selDr4').innerHTML = DR.map((d, i) => '<option value="' + i + '">' + d + ' SPS</option>').join('');
+$('selFsr').innerHTML = FSR.map((f, i) => '<option value="' + i + '">±' + fmt(f, 3) + ' V</option>').join('');
+$('btnApply').addEventListener('click', () => applyVariant(Number($('nInput').value), true));
+$('btnExample').addEventListener('click', () => { $('nInput').value = N_EXEMPLU; applyVariant(N_EXEMPLU, true); });
+$('selCnt').addEventListener('change', updE1); $('selAd1').addEventListener('change', updE1);
+$('btnAdVar').addEventListener('click', () => { $('selAd1').value = V.addrI; updE1(); });
+$('btnNoteA').addEventListener('click', () => { const { a } = e1(), ad = 0x48 + a; addCase('1 · Adresare', 'ADDR la ' + ADDR_NAMES[a] + ' → ' + hex(ad, 2) + ', W ' + hex(ad << 1, 2) + ', R ' + hex((ad << 1) | 1, 2)); });
+['selMux', 'selPga', 'selDr', 'selMode', 'selAddr'].forEach((k) => $(k).addEventListener('change', updE2));
+$('btnCfgVar').addEventListener('click', setE2Variant);
+$('btnNoteI').addEventListener('click', () => { const { cfg, bytes } = i2cBytes(); addCase('2 · I2C', 'adresă ' + hex(bytes[0] >> 1, 2) + ', cadru ' + bytes.map((x) => hex(x, 2)).join(' ') + ', Config ' + hex(cfg, 4)); });
+$('btnPlay2').addEventListener('click', () => { i2cPlay = true; }); $('btnPause2').addEventListener('click', () => { i2cPlay = false; }); $('btnReset2').addEventListener('click', () => { i2cPos = 0; drawI2C(); });
+$('selFsr').addEventListener('change', () => updE3(false)); $('vinSlider').addEventListener('input', () => updE3(false));
+$('btnVinVar').addEventListener('click', () => { $('vinSlider').value = V.vin; updE3(false); });
+$('btnNoteP').addEventListener('click', () => updE3(true));
+$('selDr4').addEventListener('change', updE4); $('selScl').addEventListener('change', updE4);
+$('btnBudVar').addEventListener('click', () => { $('selDr4').value = V.drI; $('selScl').value = V.scl; updE4(); });
+$('btnNoteB').addEventListener('click', () => { const { dr, scl } = e4Params(), ti = tI2c(scl), tch = 1 / dr + ti; addCase('4 · Rata', 'DR = ' + dr + ' SPS, fSCL = ' + scl / 1000 + ' kHz → t intrare = ' + fmt(tch * 1000, 3) + ' ms, f intrare = ' + fmt(1 / (NIN * tch), 2) + ' Hz'); });
+$('btnCopy').addEventListener('click', () => { try { navigator.clipboard.writeText(sketch()).then(() => { $('copyStatus').textContent = 'Codul a fost copiat.'; }, () => { $('copyStatus').textContent = 'Copierea nu este permisă aici; folosiți „Descarcă .ino”.'; }); } catch (e) { $('copyStatus').textContent = 'Copierea nu este permisă aici; folosiți „Descarcă .ino”.'; } });
+$('btnIno').addEventListener('click', () => download(CODE.replace('-', '_') + '_N' + String(V.N).padStart(2, '0') + '.ino', sketch(), 'text/plain;charset=utf-8'));
+$('btnCheckSheet').addEventListener('click', checkSheet);
+$('btnExportJSON').addEventListener('click', exportJSON); $('btnExportCSV').addEventListener('click', exportCSV);
+$('fileImport').addEventListener('change', (e) => { if (e.target.files[0]) importJSON(e.target.files[0]); e.target.value = ''; });
+SHEET_FIELDS.forEach((k) => $(k).addEventListener('change', saveLocal));
+window.addEventListener('resize', redrawAll);
+$('verLabel').textContent = VERSION; $('verFoot').textContent = VERSION;
+(function start() {
+  const o = restoreLocal(); const N = o ? o.N : N_EXEMPLU; $('nInput').value = N; applyVariant(N, true);
+  i2cPlay = !(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+  requestAnimationFrame(loop);
+})();
+</script>
+
+<div id="licenta-cc-by-nc-nd" style="clear:both;margin:24px auto 12px;padding:8px 12px;max-width:1100px;font:12px/1.5 system-ui,Arial,sans-serif;color:#666;text-align:center;opacity:.9">© 2026 Florin-Ciprian Argatu · UPB · FIE · DMAECS · Licență <a href="https://creativecommons.org/licenses/by-nc-nd/4.0/" rel="license" style="color:inherit">CC BY-NC-ND 4.0</a> · Utilizare necomercială, fără versiuni modificate, cu citarea autorului.</div>
+</body>
+</html>
